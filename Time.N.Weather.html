@@ -1,0 +1,729 @@
+<!--
+
+    Created by:     GGR, Maryland, USA
+    Date:           2026-07-09
+    Version:        1.0
+    Link:           https://github.com/ggr03/Time.N.Weather-Dashboard
+    About:          Global Time & Weather dashboard for the Vivaldi Browser Side Panel.
+    Note(s):        Created for the Vivaldi Browser community (https://vivaldi.com)
+                    Inspired by the work done by JRK, Sexbierum, The Netherlands.
+                    https://github.com/JRKL75/Chrono
+
+    License:        Copyright © 2026 GGR
+                    You are free to use, modify, share, and redistribute this project for personal or commercial purposes.
+                    Please respect the original author by keeping this notice intact and providing appropriate credit when redistributing or publishing modified versions.
+                    This project is provided "as is", without warranty of any kind. The author accepts no liability for any damages or issues arising from its use.
+
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time & Weather</title>
+
+    <link rel="icon" type="image/jpeg" href="globe world clock icon.jpg">
+
+    <style>
+        :root {
+            /* Base Theme Variables */
+            --bg-body: #0f172a;
+            --accent-weather: #38bdf8;
+            --danger: #f87171;
+            /* Fluid Font Variables */
+            --font-sm: clamp(0.7rem, 0.5vw + 0.4rem, 0.85rem);
+            --font-md: clamp(0.9rem, 1vw + 0.5rem, 1.05rem);
+            --font-lg: clamp(1.1rem, 2vw + 1rem, 1.4rem);
+            --font-xl: clamp(1.5rem, 3vw + 1rem, 2rem);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: #f8fafc;
+            margin: 0;
+            padding: 1rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Header */
+        .page-header { text-align: center; margin-bottom: 1.5rem; cursor: pointer; }
+        .header-logo {
+            width: clamp(60px, 10vw, 100px); height: auto; border-radius: 50%;
+            margin-bottom: 1rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .page-header h1 { margin: 0; font-size: var(--font-xl); letter-spacing: 1px; color: #f8fafc; }
+
+        /* Main Container for Side-by-Side Layout */
+        .main-container {
+            display: flex;
+            flex-direction: row;
+            gap: 2rem;
+            width: 100%;
+            max-width: 1200px;
+            align-items: flex-start;
+        }
+
+        /* NEW: Sidebar Container (Holds Search and Tabs) */
+        .sidebar {
+            width: 360px; /* Increased size to fit search box and button */
+            min-width: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Search Bar */
+        .search-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+        input {
+            flex-grow: 1; padding: 0.8rem; border-radius: 8px;
+            border: 1px solid #334155; background-color: #1e293b; color: #f8fafc;
+            font-size: var(--font-md); outline: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            width: 100%; box-sizing: border-box;
+        }
+        input:focus { border-color: #38bdf8; }
+        button.add-btn {
+            padding: 0.8rem 1rem; background-color: #38bdf8; color: #0f172a;
+            border: none; border-radius: 8px; font-weight: bold; font-size: var(--font-md);
+            cursor: pointer; transition: opacity 0.2s; white-space: nowrap;
+        }
+        button.add-btn:hover { opacity: 0.8; }
+
+        /* Tabs Navigation (Mini-Dashboards) - Vertical on the Left */
+        .tabs-wrapper {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: calc(80vh - 60px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #334155 transparent;
+            padding-right: 16px;
+        }
+
+        .tab {
+            padding: 24px 24px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.2s;
+            width: 100%;
+            box-sizing: border-box;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
+        }
+        .tab.active { transform: scale(1.03); border-color: #38bdf8; box-shadow: 0 10px 15px -3px rgba(56, 189, 248, 0.3); z-index: 10; }
+
+        /* Tab Specific Day/Night Colors */
+        .tab-day { background-color: #243B6B; color: #f8fafc; }
+        .tab-night { background-color: #1e293b; color: #f8fafc; border: 1px solid #334155; }
+
+        .tab-content-wrapper { display: flex; flex-direction: column; align-items: center; text-align: center; width: 100%; }
+        .tab-city-name { font-weight: 800; font-size: var(--font-lg); margin-bottom: 8px; }
+
+        .tab-datetime {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            font-size: var(--font-md); font-family: monospace;
+        }
+        .tab-day .tab-datetime { color: #cbd5e1; }
+        .tab-night .tab-datetime { color: #94a3b8; }
+
+        .time-highlight { font-size: 1.2em; font-weight: bold; color: inherit; }
+        .tab-day .time-highlight { color: #7dd3fc; }
+        .tab-night .time-highlight { color: #38bdf8; }
+
+        .tab-close {
+            position: absolute; top: 8px; right: 8px;
+            background: rgba(0,0,0,0.1); border: none; width: 24px; height: 24px;
+            font-size: 1rem; cursor: pointer; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; transition: 0.2s;
+        }
+        .tab-night .tab-close { color: #94a3b8; background: rgba(255,255,255,0.1); }
+        .tab-day .tab-close { color: #94a3b8; background: rgba(255,255,255,0.1); }
+        .tab-close:hover { color: #ffffff; background: var(--danger); }
+
+        /* Active Content Area Container - Right Side */
+        #content-container {
+            flex: 1;
+            width: 100%;
+        }
+
+        /* Active Content Area (Handles Day/Night Themes) */
+        .content-area {
+            width: 100%;
+            max-width: 100%;
+            display: none; flex-direction: column; align-items: center;
+            padding: 2rem; border-radius: 24px; box-sizing: border-box;
+            transition: background-color 0.4s ease, color 0.4s ease;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3); animation: fadeIn 0.3s ease-in-out;
+        }
+        .content-area.active { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- CONTENT AREA THEMES --- */
+        .theme-night {
+            background-color: #000000; color: #f8fafc;
+            --card-bg: #111827; --card-hover: #1f2937;
+            --text-main: #f8fafc; --text-muted: #94a3b8;
+            --border-color: #334155; --accent: #38bdf8;
+        }
+        .theme-day {
+            background-color: #243B6B; color: #f8fafc;
+            --card-bg: #4F7CAC; --card-hover: #436a93;
+            --text-main: #f8fafc; --text-muted: #e2e8f0;
+            --border-color: #3b5f8f; --accent: #1e3a8a;
+        }
+
+        /* Weather UI Controls */
+        .weather-section { width: 100%; display: flex; flex-direction: column; align-items: center; }
+        .view-toggle {
+            display: flex; gap: 10px; margin-bottom: 2rem;
+            background: var(--card-bg); padding: 6px; border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        .toggle-btn {
+            background: transparent; border: none; padding: 10px 20px;
+            color: var(--text-muted); font-weight: 600; border-radius: 8px;
+            cursor: pointer; transition: all 0.2s; font-size: var(--font-md);
+        }
+        .toggle-btn.active { background: var(--accent); color: #ffffff; }
+
+        /* Bento Grid (Local Weather) */
+        .bento-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px; width: 100%;
+        }
+        .bento-card {
+            background-color: var(--card-bg); padding: 1.5rem; border-radius: 16px;
+            border: 1px solid var(--border-color); display: flex; flex-direction: column;
+            justify-content: center; transition: transform 0.2s, background-color 0.2s;
+        }
+        .bento-card:hover { transform: translateY(-2px); background-color: var(--card-hover); }
+        .metric-label { color: var(--text-muted); font-size: var(--font-sm); margin-bottom: 8px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;}
+        .metric-value { font-size: var(--font-lg); font-weight: 700; color: var(--text-main); line-height: 1.2; }
+        .metric-sub { font-size: var(--font-sm); color: var(--text-muted); margin-top: 4px; }
+        .card-temp .metric-value { color: var(--accent-weather); }
+        .card-sun .metric-value { font-size: var(--font-lg); color: #fbbf24; }
+
+        /* Extended Forecast List Styles */
+        .forecast-view { width: 100%; display: none; }
+        .forecast-view h3 { font-size: var(--font-lg); margin: 0 0 1rem 0; color: inherit; }
+
+        .forecast-list {
+            background-color: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 16px; padding: 0.5rem 1rem; margin-bottom: 2rem; display: flex; flex-direction: column;
+        }
+        .hourly-list {
+            max-height: 350px; overflow-y: auto;
+            scrollbar-width: thin; scrollbar-color: var(--border-color) transparent;
+        }
+        .hourly-list::-webkit-scrollbar { width: 6px; }
+        .hourly-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+        .forecast-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem 0; border-bottom: 1px solid var(--border-color);
+        }
+        .forecast-item:last-child { border-bottom: none; }
+
+        .forecast-time { font-weight: 600; color: var(--text-main); font-size: var(--font-md); flex: 1; }
+        .forecast-condition { display: flex; flex-direction: column; align-items: center; flex: 1; text-align: center; }
+        .forecast-icon { font-size: 1.6rem; line-height: 1; margin-bottom: 4px; }
+        .forecast-cond-text { font-size: var(--font-sm); color: var(--text-muted); font-weight: 600; }
+        .forecast-temps-daily { display: flex; flex-direction: column; gap: 4px; text-align: right; flex: 1; }
+        .forecast-temp-main { font-weight: bold; color: var(--accent-weather); font-size: var(--font-md); text-align: right; flex: 1; }
+        .temp-row { font-size: var(--font-md); font-weight: bold; }
+
+        .temp-min { color: #93c5fd; }
+        .temp-max { color: #fb923c; }
+
+        .temp-f-sub { font-weight: normal; color: var(--text-muted); font-size: var(--font-sm); margin-left: 4px; }
+
+        .loading-text { text-align: center; color: inherit; opacity: 0.8; font-style: italic; padding: 2rem; width: 100%;}
+
+        /* Responsive tweaks for smaller screens */
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; }
+            .sidebar { width: 100%; min-width: unset; }
+            .tabs-wrapper { flex-direction: row; overflow-x: auto; overflow-y: hidden; max-height: unset; padding-right: 0; padding-bottom: 16px; }
+            .tab { width: auto; min-width: 180px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page-header">
+	    <!--        <h1>Time and Weather</h1> -->
+    </div>
+
+    <div class="main-container">
+        <!-- Sidebar containing search and tabs -->
+        <div class="sidebar">
+            <div class="search-container">
+                <input list="city-list" id="city-search" placeholder="Search for a city (e.g. Baltimore)..." autocomplete="off">
+                <datalist id="city-list"></datalist>
+                <button class="add-btn" onclick="addCity()">Add City</button>
+            </div>
+
+            <div class="tabs-wrapper" id="tabs-container"></div>
+        </div>
+
+        <!-- Content Area for selected city -->
+        <div id="content-container"></div>
+    </div>
+
+    <script>
+        // Database
+        const cityData = [
+            { city: "Anchorage", country: "United States", tz: "America/Anchorage", lat: 61.2181, lon: -149.9003 },
+            { city: "Honolulu", country: "United States", tz: "Pacific/Honolulu", lat: 21.3069, lon: -157.8583 },
+            { city: "Vancouver", country: "Canada", tz: "America/Vancouver", lat: 49.2827, lon: -123.1207 },
+            { city: "Los Angeles", country: "United States", tz: "America/Los_Angeles", lat: 34.0522, lon: -118.2437 },
+            { city: "San Francisco", country: "United States", tz: "America/Los_Angeles", lat: 37.7749, lon: -122.4194 },
+            { city: "Denver", country: "United States", tz: "America/Denver", lat: 39.7392, lon: -104.9903 },
+            { city: "Calgary", country: "Canada", tz: "America/Edmonton", lat: 51.0447, lon: -114.0719 },
+            { city: "Chicago", country: "United States", tz: "America/Chicago", lat: 41.8781, lon: -87.6298 },
+            { city: "Houston", country: "United States", tz: "America/Chicago", lat: 29.7604, lon: -95.3698 },
+            { city: "Mexico City", country: "Mexico", tz: "America/Mexico_City", lat: 19.4326, lon: -99.1332 },
+            { city: "Toronto", country: "Canada", tz: "America/Toronto", lat: 43.7001, lon: -79.4163 },
+            { city: "Montreal", country: "Canada", tz: "America/Toronto", lat: 45.5017, lon: -73.5673 },
+            { city: "New York", country: "United States", tz: "America/New_York", lat: 40.7128, lon: -74.0060 },
+            { city: "Washington D.C.", country: "United States", tz: "America/New_York", lat: 38.9072, lon: -77.0369 },
+            { city: "Baltimore", country: "United States", tz: "America/New_York", lat: 39.2904, lon: -76.6122 },
+            { city: "Ellicott City", country: "United States", tz: "America/New_York", lat: 39.2673, lon: -76.7983 },
+            { city: "Miami", country: "United States", tz: "America/New_York", lat: 25.7617, lon: -80.1918 },
+            { city: "Havana", country: "Cuba", tz: "America/Havana", lat: 23.1136, lon: -82.3666 },
+            { city: "Halifax", country: "Canada", tz: "America/Halifax", lat: 44.6488, lon: -63.5752 },
+            { city: "St. John's", country: "Canada", tz: "America/St_Johns", lat: 47.5615, lon: -52.7126 },
+            { city: "Bogota", country: "Colombia", tz: "America/Bogota", lat: 4.7110, lon: -74.0721 },
+            { city: "Lima", country: "Peru", tz: "America/Lima", lat: -12.0464, lon: -77.0428 },
+            { city: "Caracas", country: "Venezuela", tz: "America/Caracas", lat: 10.4806, lon: -66.9036 },
+            { city: "Santiago", country: "Chile", tz: "America/Santiago", lat: -33.4489, lon: -70.6693 },
+            { city: "Buenos Aires", country: "Argentina", tz: "America/Argentina/Buenos_Aires", lat: -34.6037, lon: -58.3816 },
+            { city: "Sao Paulo", country: "Brazil", tz: "America/Sao_Paulo", lat: -23.5505, lon: -46.6333 },
+            { city: "Rio de Janeiro", country: "Brazil", tz: "America/Sao_Paulo", lat: -22.9068, lon: -43.1729 },
+            { city: "Reykjavik", country: "Iceland", tz: "Atlantic/Reykjavik", lat: 64.1466, lon: -21.9426 },
+            { city: "London", country: "United Kingdom", tz: "Europe/London", lat: 51.5074, lon: -0.1278 },
+            { city: "Dublin", country: "Ireland", tz: "Europe/Dublin", lat: 53.3498, lon: -6.2603 },
+            { city: "Lisbon", country: "Portugal", tz: "Europe/Lisbon", lat: 38.7223, lon: -9.1393 },
+            { city: "Madrid", country: "Spain", tz: "Europe/Madrid", lat: 40.4168, lon: -3.7038 },
+            { city: "Paris", country: "France", tz: "Europe/Paris", lat: 48.8566, lon: 2.3522 },
+            { city: "Amsterdam", country: "Netherlands", tz: "Europe/Amsterdam", lat: 52.3676, lon: 4.9041 },
+            { city: "Brussels", country: "Belgium", tz: "Europe/Brussels", lat: 50.8503, lon: 4.3517 },
+            { city: "Berlin", country: "Germany", tz: "Europe/Berlin", lat: 52.5200, lon: 13.4050 },
+            { city: "Rome", country: "Italy", tz: "Europe/Rome", lat: 41.9028, lon: 12.4964 },
+            { city: "Vienna", country: "Austria", tz: "Europe/Vienna", lat: 48.2082, lon: 16.3738 },
+            { city: "Prague", country: "Czechia", tz: "Europe/Prague", lat: 50.0755, lon: 14.4378 },
+            { city: "Warsaw", country: "Poland", tz: "Europe/Warsaw", lat: 52.2297, lon: 21.0122 },
+            { city: "Stockholm", country: "Sweden", tz: "Europe/Stockholm", lat: 59.3293, lon: 18.0686 },
+            { city: "Oslo", country: "Norway", tz: "Europe/Oslo", lat: 59.9139, lon: 10.7522 },
+            { city: "Copenhagen", country: "Denmark", tz: "Europe/Copenhagen", lat: 55.6761, lon: 12.5683 },
+            { city: "Athens", country: "Greece", tz: "Europe/Athens", lat: 37.9838, lon: 23.7275 },
+            { city: "Kyiv", country: "Ukraine", tz: "Europe/Kyiv", lat: 50.4501, lon: 30.5234 },
+            { city: "Helsinki", country: "Finland", tz: "Europe/Helsinki", lat: 60.1695, lon: 24.9354 },
+            { city: "Moscow", country: "Russia", tz: "Europe/Moscow", lat: 55.7558, lon: 37.6173 },
+            { city: "Istanbul", country: "Turkey", tz: "Europe/Istanbul", lat: 41.0082, lon: 28.9784 },
+            { city: "Casablanca", country: "Morocco", tz: "Africa/Casablanca", lat: 33.5731, lon: -7.5898 },
+            { city: "Dakar", country: "Senegal", tz: "Africa/Dakar", lat: 14.7167, lon: -17.4677 },
+            { city: "Accra", country: "Ghana", tz: "Africa/Accra", lat: 5.6037, lon: -0.1870 },
+            { city: "Lagos", country: "Nigeria", tz: "Africa/Lagos", lat: 6.5244, lon: 3.3792 },
+            { city: "Kinshasa", country: "DR Congo", tz: "Africa/Kinshasa", lat: -4.4419, lon: 15.2663 },
+            { city: "Cairo", country: "Egypt", tz: "Africa/Cairo", lat: 30.0444, lon: 31.2357 },
+            { city: "Johannesburg", country: "South Africa", tz: "Africa/Johannesburg", lat: -26.2041, lon: 28.0473 },
+            { city: "Cape Town", country: "South Africa", tz: "Africa/Johannesburg", lat: -33.9249, lon: 18.4241 },
+            { city: "Nairobi", country: "Kenya", tz: "Africa/Nairobi", lat: -1.2921, lon: 36.8219 },
+            { city: "Addis Ababa", country: "Ethiopia", tz: "Africa/Addis_Ababa", lat: 9.0250, lon: 38.7469 },
+            { city: "Jerusalem", country: "Israel", tz: "Asia/Jerusalem", lat: 31.7683, lon: 35.2137 },
+            { city: "Amman", country: "Jordan", tz: "Asia/Amman", lat: 31.9454, lon: 35.9284 },
+            { city: "Riyadh", country: "Saudi Arabia", tz: "Asia/Riyadh", lat: 24.7136, lon: 46.6753 },
+            { city: "Baghdad", country: "Iraq", tz: "Asia/Baghdad", lat: 33.3152, lon: 44.3661 },
+            { city: "Tehran", country: "Iran", tz: "Asia/Tehran", lat: 35.6892, lon: 51.3890 },
+            { city: "Dubai", country: "United Arab Emirates", tz: "Asia/Dubai", lat: 25.2048, lon: 55.2708 },
+            { city: "Doha", country: "Qatar", tz: "Asia/Qatar", lat: 25.2854, lon: 51.5310 },
+            { city: "Kabul", country: "Afghanistan", tz: "Asia/Kabul", lat: 34.5553, lon: 69.2075 },
+            { city: "Karachi", country: "Pakistan", tz: "Asia/Karachi", lat: 24.8607, lon: 67.0011 },
+            { city: "Mumbai", country: "India", tz: "Asia/Kolkata", lat: 19.0760, lon: 72.8777 },
+            { city: "New Delhi", country: "India", tz: "Asia/Kolkata", lat: 28.6139, lon: 77.2090 },
+            { city: "Bengaluru", country: "India", tz: "Asia/Kolkata", lat: 12.9716, lon: 77.5946 },
+            { city: "Coimbatore", country: "India", tz: "Asia/Kolkata", lat: 11.0168, lon: 76.9558 },
+            { city: "Chennai", country: "India", tz: "Asia/Kolkata", lat: 13.0827, lon: 80.2707 },
+            { city: "Dhaka", country: "Bangladesh", tz: "Asia/Dhaka", lat: 23.8103, lon: 90.4125 },
+            { city: "Yangon", country: "Myanmar", tz: "Asia/Yangon", lat: 16.8409, lon: 96.1490 },
+            { city: "Bangkok", country: "Thailand", tz: "Asia/Bangkok", lat: 13.7563, lon: 100.5018 },
+            { city: "Ho Chi Minh City", country: "Vietnam", tz: "Asia/Ho_Chi_Minh", lat: 10.8231, lon: 106.6297 },
+            { city: "Jakarta", country: "Indonesia", tz: "Asia/Jakarta", lat: -6.2088, lon: 106.8456 },
+            { city: "Singapore", country: "Singapore", tz: "Asia/Singapore", lat: 1.2897, lon: 103.8501 },
+            { city: "Manila", country: "Philippines", tz: "Asia/Manila", lat: 14.5995, lon: 120.9842 },
+            { city: "Hong Kong", country: "Hong Kong", tz: "Asia/Hong_Kong", lat: 22.3193, lon: 114.1694 },
+            { city: "Taipei", country: "Taiwan", tz: "Asia/Taipei", lat: 25.0330, lon: 121.5654 },
+            { city: "Beijing", country: "China", tz: "Asia/Shanghai", lat: 39.9042, lon: 116.4074 },
+            { city: "Shanghai", country: "China", tz: "Asia/Shanghai", lat: 31.2304, lon: 121.4737 },
+            { city: "Seoul", country: "South Korea", tz: "Asia/Seoul", lat: 37.5665, lon: 126.9780 },
+            { city: "Tokyo", country: "Japan", tz: "Asia/Tokyo", lat: 35.6762, lon: 139.6503 },
+            { city: "Osaka", country: "Japan", tz: "Asia/Tokyo", lat: 34.6937, lon: 135.5023 },
+            { city: "Perth", country: "Australia", tz: "Australia/Perth", lat: -31.9505, lon: 115.8605 },
+            { city: "Adelaide", country: "Australia", tz: "Australia/Adelaide", lat: -34.9285, lon: 138.6007 },
+            { city: "Sydney", country: "Australia", tz: "Australia/Sydney", lat: -33.8688, lon: 151.2093 },
+            { city: "Melbourne", country: "Australia", tz: "Australia/Melbourne", lat: -37.8136, lon: 144.9631 },
+            { city: "Brisbane", country: "Australia", tz: "Australia/Brisbane", lat: -27.4698, lon: 153.0251 },
+            { city: "Auckland", country: "New Zealand", tz: "Pacific/Auckland", lat: -36.8485, lon: 174.7633 },
+            { city: "Wellington", country: "New Zealand", tz: "Pacific/Auckland", lat: -41.2865, lon: 174.7762 },
+            { city: "Suva", country: "Fiji", tz: "Pacific/Fiji", lat: -18.1248, lon: 178.4501 }
+        ];
+
+        let myCities = [];
+        let activeCityName = null;
+        let weatherCache = {};
+        const CACHE_DURATION = 4 * 60 * 60 * 1000;
+
+        function cToF(c) { return Math.round((c * 1.8 + 32) * 10) / 10; }
+
+        function getWeatherDescription(code) {
+            if (code === 0) return { icon: "☀️", text: "Sunny / Clear" };
+            if (code === 1 || code === 2) return { icon: "⛅", text: "Partly Cloudy" };
+            if (code === 3) return { icon: "☁️", text: "Overcast" };
+            if (code === 45 || code === 48) return { icon: "🌫️", text: "Foggy" };
+            if (code >= 51 && code <= 55) return { icon: "🌧️", text: "Drizzle" };
+            if (code >= 56 && code <= 57) return { icon: "🌨️", text: "Freezing Drizzle" };
+            if (code >= 61 && code <= 65) return { icon: "🌧️", text: "Rain" };
+            if (code >= 66 && code <= 67) return { icon: "🌨️", text: "Freezing Rain" };
+            if (code >= 71 && code <= 77) return { icon: "❄️", text: "Snow" };
+            if (code >= 80 && code <= 82) return { icon: "🌦️", text: "Showers" };
+            if (code >= 85 && code <= 86) return { icon: "🌨️", text: "Snow Showers" };
+            if (code === 95) return { icon: "⛈️", text: "Thunderstorm" };
+            if (code === 96 || code === 99) return { icon: "⛈️", text: "Heavy Storm" };
+            return { icon: "🌡️", text: "Unknown" };
+        }
+
+        function init() {
+            const dataList = document.getElementById('city-list');
+            cityData.sort((a, b) => a.city.localeCompare(b.city)).forEach(location => {
+                const option = document.createElement('option');
+                option.value = location.city;
+                dataList.appendChild(option);
+            });
+
+            const saved = localStorage.getItem('dashboardCitiesV10');
+            if (saved) {
+                myCities = JSON.parse(saved);
+                activeCityName = null;
+            }
+
+            renderApp();
+            setInterval(updateLiveClock, 1000);
+        }
+
+        function saveToLocal() { localStorage.setItem('dashboardCitiesV10', JSON.stringify(myCities)); }
+
+        function addCity() {
+            const input = document.getElementById('city-search');
+            const query = input.value.trim().toLowerCase();
+            if (!query) return;
+
+            const location = cityData.find(loc => loc.city.toLowerCase() === query);
+            if (!location) return alert("City not found. Please select from the list.");
+
+            if (myCities.some(c => c.city === location.city)) {
+                activeCityName = location.city;
+                input.value = ''; renderApp(); return;
+            }
+
+            myCities.push(location);
+            activeCityName = location.city;
+            input.value = ''; saveToLocal(); renderApp();
+        }
+
+        function removeCity(cityName, event) {
+            event.stopPropagation();
+            myCities = myCities.filter(c => c.city !== cityName);
+            if (activeCityName === cityName) activeCityName = null;
+            saveToLocal(); renderApp();
+        }
+
+        function switchTab(cityName) {
+            if (activeCityName === cityName) return;
+            activeCityName = cityName; renderApp();
+        }
+
+        window.switchSubTab = function(tabName) {
+            document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + tabName).classList.add('active');
+
+            document.getElementById('bento-view').style.display = tabName === 'local' ? 'grid' : 'none';
+            document.getElementById('forecast-view').style.display = tabName === 'forecast' ? 'block' : 'none';
+        }
+
+        async function renderApp() {
+            renderTabs();
+            const container = document.getElementById('content-container');
+            container.innerHTML = '';
+
+            if (!activeCityName || myCities.length === 0) return;
+
+            const activeLocation = myCities.find(c => c.city === activeCityName);
+            if (!activeLocation) return;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'content-area active theme-night';
+            wrapper.id = `view-${activeLocation.city}`;
+
+            wrapper.innerHTML = `
+                <div class="weather-section" id="weather-section">
+                    <div class="loading-text">Loading meteorological data...</div>
+                </div>
+            `;
+            container.appendChild(wrapper);
+
+            await renderWeatherMetrics(activeLocation, wrapper);
+        }
+
+        function renderTabs() {
+            const container = document.getElementById('tabs-container');
+            container.innerHTML = '';
+
+            myCities.forEach(location => {
+                const isActive = location.city === activeCityName;
+                const btn = document.createElement('button');
+                const safeId = location.city.replace(/[^a-zA-Z0-9]/g, '-');
+
+                const now = new Date();
+                const hourStr = now.toLocaleString('en-US', { timeZone: location.tz, hour: 'numeric', hour12: false });
+                const hour = parseInt(hourStr, 10);
+                const isDayTime = hour >= 6 && hour < 18;
+                const themeClass = isDayTime ? 'tab-day' : 'tab-night';
+
+                btn.className = `tab ${themeClass} ${isActive ? 'active' : ''}`;
+                btn.onclick = () => switchTab(location.city);
+
+                btn.innerHTML = `
+                    <button class="tab-close" onclick="removeCity('${location.city}', event)">&times;</button>
+                    <div class="tab-content-wrapper">
+                        <div class="tab-city-name">${location.city}</div>
+                        <div class="tab-datetime">
+                            <span id="tab-date-${safeId}">----/--/--</span>
+                            <span id="tab-time-${safeId}" class="time-highlight">--:--:--</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(btn);
+            });
+
+            updateLiveClock();
+        }
+
+        function updateLiveClock() {
+            const now = new Date();
+
+            myCities.forEach(location => {
+                const safeId = location.city.replace(/[^a-zA-Z0-9]/g, '-');
+                const tabTimeEl = document.getElementById(`tab-time-${safeId}`);
+                const tabDateEl = document.getElementById(`tab-date-${safeId}`);
+
+                if (tabTimeEl && tabDateEl) {
+                    tabTimeEl.textContent = now.toLocaleTimeString('en-US', {
+                        timeZone: location.tz, hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
+                    });
+
+                    tabDateEl.textContent = now.toLocaleDateString('en-US', {
+                        timeZone: location.tz, weekday: 'short', month: 'short', day: 'numeric'
+                    });
+                }
+            });
+        }
+
+        function formatOpenMeteoTime(isoStr) {
+            if (!isoStr) return "--:--";
+            const timePart = isoStr.split('T')[1];
+            const [hourStr, minStr] = timePart.split(':');
+            let h = parseInt(hourStr, 10);
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+            return `${h}:${minStr} ${ampm}`;
+        }
+
+        async function fetchWeather(lat, lon, tz, cityName) {
+            const cached = weatherCache[cityName];
+            if (cached && (Date.now() - cached.timestamp < CACHE_DURATION)) return cached.data;
+
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,dew_point_2m,surface_pressure,wind_speed_10m,is_day,weather_code&hourly=temperature_2m,weather_code&daily=sunrise,sunset,uv_index_max,temperature_2m_max,temperature_2m_min,weather_code&timezone=${tz}&wind_speed_unit=mph`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("Network error");
+                const data = await response.json();
+                weatherCache[cityName] = { data: data, timestamp: Date.now() };
+                return data;
+            } catch (error) { return null; }
+        }
+
+        function generateForecastHtml(data) {
+            const currentIso = data.current.time;
+            let startIndex = data.hourly.time.indexOf(currentIso);
+            if (startIndex === -1) startIndex = 0;
+
+            let hourlyHtml = '<div class="forecast-list hourly-list">';
+            for(let i = startIndex; i < startIndex + 24; i++) {
+                let timeStr = formatOpenMeteoTime(data.hourly.time[i]);
+                let tempC = data.hourly.temperature_2m[i];
+                let tempF = cToF(tempC);
+                let condition = getWeatherDescription(data.hourly.weather_code[i]);
+
+                hourlyHtml += `
+                    <div class="forecast-item">
+                        <span class="forecast-time">${timeStr}</span>
+                        <div class="forecast-condition">
+                            <span class="forecast-icon">${condition.icon}</span>
+                            <span class="forecast-cond-text">${condition.text}</span>
+                        </div>
+                        <span class="forecast-temp-main">${tempC}°C <span class="temp-f-sub">/ ${tempF}°F</span></span>
+                    </div>
+                `;
+            }
+            hourlyHtml += '</div>';
+
+            let dailyHtml = '<div class="forecast-list">';
+            for(let i = 0; i < data.daily.time.length; i++) {
+                let dateObj = new Date(data.daily.time[i]);
+                dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
+                let dayStr = dateObj.toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'});
+
+                let minC = data.daily.temperature_2m_min[i];
+                let maxC = data.daily.temperature_2m_max[i];
+                let minF = cToF(minC);
+                let maxF = cToF(maxC);
+                let condition = getWeatherDescription(data.daily.weather_code[i]);
+
+                dailyHtml += `
+                    <div class="forecast-item">
+                        <span class="forecast-time">${dayStr}</span>
+
+                        <div class="forecast-condition">
+                            <span class="forecast-icon">${condition.icon}</span>
+                            <span class="forecast-cond-text">${condition.text}</span>
+                        </div>
+
+                        <div class="forecast-temps-daily">
+                            <span class="temp-row temp-max">High: ${maxC}°C <span class="temp-f-sub">(${maxF}°F)</span></span>
+                            <span class="temp-row temp-min">Low: ${minC}°C <span class="temp-f-sub">(${minF}°F)</span></span>
+                        </div>
+                    </div>
+                `;
+            }
+            dailyHtml += '</div>';
+
+            return { hourlyHtml, dailyHtml };
+        }
+
+        async function renderWeatherMetrics(location, wrapperElement) {
+            const data = await fetchWeather(location.lat, location.lon, location.tz, location.city);
+            const section = document.getElementById('weather-section');
+            if (!section) return;
+
+            if (data && data.current) {
+                const cur = data.current;
+                const day = data.daily;
+
+                const isDay = cur.is_day === 1;
+                wrapperElement.className = `content-area active ${isDay ? 'theme-day' : 'theme-night'}`;
+
+                const sunrise = formatOpenMeteoTime(day.sunrise[0]);
+                const sunset = formatOpenMeteoTime(day.sunset[0]);
+
+                const forecasts = generateForecastHtml(data);
+                const currentCondition = getWeatherDescription(cur.weather_code);
+
+                section.innerHTML = `
+                    <div class="view-toggle">
+                        <button id="btn-local" class="toggle-btn active" onclick="switchSubTab('local')">Local Weather</button>
+                        <button id="btn-forecast" class="toggle-btn" onclick="switchSubTab('forecast')">Extended Forecast</button>
+                    </div>
+
+                    <div id="bento-view" class="bento-grid">
+                        <div class="bento-card card-temp">
+                            <span class="metric-label">Condition & Temp</span>
+                            <div class="metric-value" style="font-size: var(--font-md); margin-bottom: 5px;">
+                                ${currentCondition.icon} ${currentCondition.text}
+                            </div>
+                            <div class="metric-value">${cur.temperature_2m}°C</div>
+                            <div class="metric-value" style="font-size:var(--font-md); margin-top:4px; opacity:0.85;">${cToF(cur.temperature_2m)}°F</div>
+                            <span class="metric-sub">Feels like ${cur.apparent_temperature}°C / ${cToF(cur.apparent_temperature)}°F</span>
+                        </div>
+                        <div class="bento-card card-sun">
+                            <span class="metric-label">Sunrise & Sunset</span>
+                            <span class="metric-value">🌅 ${sunrise}</span>
+                            <span class="metric-value" style="margin-top: 10px; color: #fbbf24;">🌇 ${sunset}</span>
+                        </div>
+                        <div class="bento-card">
+                            <span class="metric-label">Humidity</span>
+                            <span class="metric-value">${cur.relative_humidity_2m}%</span>
+                            <span class="metric-sub">Dewpoint: ${cur.dew_point_2m}°C / ${cToF(cur.dew_point_2m)}°F</span>
+                        </div>
+                        <div class="bento-card">
+                            <span class="metric-label">Wind Speed</span>
+                            <span class="metric-value">${cur.wind_speed_10m}</span>
+                            <span class="metric-sub">mph</span>
+                        </div>
+                        <div class="bento-card">
+                            <span class="metric-label">Air Pressure</span>
+                            <span class="metric-value">${cur.surface_pressure}</span>
+                            <span class="metric-sub">hPa</span>
+                        </div>
+                        <div class="bento-card">
+                            <span class="metric-label">Max UV Index</span>
+                            <span class="metric-value">${day.uv_index_max[0] || "--"}</span>
+                            <span class="metric-sub">Daily Peak</span>
+                        </div>
+                    </div>
+
+                    <div id="forecast-view" class="forecast-view">
+                        <h3>Next 24 Hours</h3>
+                        ${forecasts.hourlyHtml}
+
+                        <h3>7-Day Forecast</h3>
+                        ${forecasts.dailyHtml}
+                    </div>
+                `;
+
+            } else {
+                section.innerHTML = `<div class="loading-text" style="color: var(--danger);">Failed to load weather data.</div>`;
+            }
+        }
+
+        document.addEventListener('click', (event) => {
+            const isTab = event.target.closest('.tab');
+            const isContent = event.target.closest('.content-area');
+            const isSearch = event.target.closest('.search-container');
+
+            if (!isTab && !isContent && !isSearch) {
+                if (activeCityName !== null) {
+                    activeCityName = null;
+                    renderApp();
+                }
+            }
+        });
+
+        document.getElementById('city-search').addEventListener('keypress', e => { if (e.key === 'Enter') addCity(); });
+        init();
+
+    </script>
+</body>
+</html>
