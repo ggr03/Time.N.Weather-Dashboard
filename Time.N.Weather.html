@@ -1,3 +1,20 @@
+<!--
+
+    Created by:     GGR, Maryland, USA
+    Date:           2026-07-09
+    Version:        1.4
+    Link:           https://github.com/ggr03/Time.N.Weather-Dashboard
+    About:          Global Time & Weather dashboard for the Vivaldi Browser Side Panel.
+    Note(s):        Created for the Vivaldi Browser community (https://vivaldi.com)
+                    Inspired by the work done by JRK, Sexbierum, The Netherlands.
+                    https://github.com/JRKL75/Chrono
+
+    License:        Copyright © 2026 GGR
+                    You are free to use, modify, share, and redistribute this project for personal or commercial purposes.
+                    Please respect the original author by keeping this notice intact and providing appropriate credit when redistributing or publishing modified versions.
+                    This project is provided "as is", without warranty of any kind. The author accepts no liability for any damages or issues arising from its use.
+
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,14 +52,6 @@
             text-align: center; 
             margin-bottom: 1.5rem; 
             cursor: pointer; 
-        }
-
-        .header-logo { 
-            width: clamp(60px, 10vw, 100px); 
-            height: auto; 
-            border-radius: 50%; 
-            margin-bottom: 1rem; 
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); 
         }
 
         .page-header h1 { 
@@ -492,9 +501,9 @@
         
         <div class="sidebar">
             <div class="search-container">
-                <input list="city-list" id="city-search" placeholder="Search for any city (e.g. Bengaluru)..." autocomplete="off">
+                <input list="city-list" id="city-search" placeholder="Search any city worldwide..." autocomplete="off">
                 <datalist id="city-list"></datalist>
-                <button class="add-btn" onclick="addCity()">Add City</button>
+                <button class="add-btn" id="add-city-btn">Add City</button>
             </div>
             <div class="tabs-wrapper" id="tabs-container"></div>
         </div>
@@ -504,8 +513,7 @@
     </div>
 
     <script>
-        // Curated database of major cities (instant, works offline).
-        // Any other city on Earth is pulled live from Open-Meteo's geocoding API as you type.
+        // Data and State
         const cityData = [
             { city: "Anchorage", country: "United States", tz: "America/Anchorage", lat: 61.2181, lon: -149.9003 },
             { city: "Honolulu", country: "United States", tz: "Pacific/Honolulu", lat: 21.3069, lon: -157.8583 },
@@ -607,12 +615,26 @@
         let activeCityName = null;
         let weatherCache = {}; 
         const CACHE_DURATION = 4 * 60 * 60 * 1000;
-
-        // --- Live worldwide city search via Open-Meteo geocoding (NEW) ---
         let geoDebounceTimer;
         let geoResults = {};
         const GEO_MIN_CHARS = 2;
 
+        // --- Security Sanitizer Function to prevent XSS ---
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return str;
+            return str.replace(/[&<>'"]/g, function(match) {
+                const escape = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                };
+                return escape[match];
+            });
+        }
+
+        // --- Live API Geocoding ---
         document.getElementById('city-search').addEventListener('input', e => {
             const q = e.target.value.trim();
             clearTimeout(geoDebounceTimer);
@@ -624,16 +646,13 @@
             try {
                 const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json`;
                 const response = await fetch(url);
-                
                 if (!response.ok) return;
-                
                 const data = await response.json();
                 if (!data.results) return;
 
                 const dataList = document.getElementById('city-list');
-                geoResults = {}; // reset current suggestions
+                geoResults = {}; 
 
-                // Process new results
                 data.results.forEach(r => {
                     const label = r.admin1 ? `${r.name}, ${r.admin1}, ${r.country}` : `${r.name}, ${r.country}`;
                     geoResults[label.toLowerCase()] = {
@@ -645,27 +664,25 @@
                     };
                 });
 
-                // Clear out existing options and render new ones
                 dataList.innerHTML = '';
                 Object.values(geoResults).forEach(loc => {
                     const option = document.createElement('option');
-                    option.value = loc.city;
+                    option.value = loc.city; 
                     dataList.appendChild(option);
                 });
 
-            } catch (e) { 
-                console.error("Geocoding Error:", e); 
-            }
+            } catch (e) { console.error("Geocoding Error:", e); }
         }
 
-        // --- Helper Functions ---
+        // --- Core Functions ---
         function cToF(c) { 
             return Math.round((c * 1.8 + 32) * 10) / 10; 
         }
 
-        function getWeatherDescription(code) {
-            if (code === 0) return { icon: "☀️", text: "Sunny / Clear" };
-            if (code === 1 || code === 2) return { icon: "⛅", text: "Partly Cloudy" };
+        // --- NEW: Added isDay parameter for correct Nighttime Icons ---
+        function getWeatherDescription(code, isDay = true) {
+            if (code === 0) return { icon: isDay ? "☀️" : "🌙", text: isDay ? "Sunny / Clear" : "Clear Night" };
+            if (code === 1 || code === 2) return { icon: isDay ? "⛅" : "☁️", text: "Partly Cloudy" };
             if (code === 3) return { icon: "☁️", text: "Overcast" };
             if (code === 45 || code === 48) return { icon: "🌫️", text: "Foggy" };
             if (code >= 51 && code <= 55) return { icon: "🌧️", text: "Drizzle" };
@@ -680,7 +697,6 @@
             return { icon: "🌡️", text: "Unknown" };
         }
 
-        // --- App Initialization ---
         function init() {
             const dataList = document.getElementById('city-list');
             cityData.sort((a, b) => a.city.localeCompare(b.city)).forEach(location => {
@@ -689,7 +705,8 @@
                 dataList.appendChild(option);
             });
 
-            const saved = localStorage.getItem('dashboardCitiesV11');
+            // Updating cache key to ensure old data without is_day parameter doesn't break
+            const saved = localStorage.getItem('dashboardCitiesV13');
             if (saved) {
                 myCities = JSON.parse(saved);
                 activeCityName = null; 
@@ -700,58 +717,39 @@
         }
 
         function saveToLocal() { 
-            localStorage.setItem('dashboardCitiesV11', JSON.stringify(myCities)); 
+            localStorage.setItem('dashboardCitiesV13', JSON.stringify(myCities)); 
         }
 
-        // --- Adding/Removing Cities ---
         function addCity() {
             const input = document.getElementById('city-search');
             const query = input.value.trim().toLowerCase();
-            
             if (!query) return;
 
-            // Search through hardcoded data or live API results
             let location = cityData.find(loc => loc.city.toLowerCase() === query);
-            
-            if (!location && geoResults[query]) {
-                location = geoResults[query];
-            }
+            if (!location && geoResults[query]) location = geoResults[query];
 
-            if (!location) {
-                return alert("City not found. Please select from the dropdown list.");
-            }
+            if (!location) return alert("City not found. Please select from the dropdown list.");
             
             if (myCities.some(c => c.city === location.city)) {
                 activeCityName = location.city; 
-                input.value = ''; 
-                renderApp(); 
-                return;
+                input.value = ''; renderApp(); return;
             }
 
             myCities.push(location);
             activeCityName = location.city; 
-            input.value = ''; 
-            saveToLocal(); 
-            renderApp();
+            input.value = ''; saveToLocal(); renderApp();
         }
 
         function removeCity(cityName, event) {
             event.stopPropagation(); 
             myCities = myCities.filter(c => c.city !== cityName);
-            
-            if (activeCityName === cityName) {
-                activeCityName = null;
-            }
-            
-            saveToLocal(); 
-            renderApp();
+            if (activeCityName === cityName) activeCityName = null;
+            saveToLocal(); renderApp();
         }
 
-        // --- Tab and View Management ---
         function switchTab(cityName) {
             if (activeCityName === cityName) return;
-            activeCityName = cityName; 
-            renderApp();
+            activeCityName = cityName; renderApp();
         }
 
         window.switchSubTab = function(tabName) {
@@ -762,7 +760,6 @@
             document.getElementById('forecast-view').style.display = tabName === 'forecast' ? 'block' : 'none';
         }
 
-        // --- Rendering Logic ---
         async function renderApp() {
             renderTabs();
             const container = document.getElementById('content-container');
@@ -775,7 +772,7 @@
 
             const wrapper = document.createElement('div');
             wrapper.className = 'content-area active theme-night';
-            wrapper.id = `view-${activeLocation.city}`;
+            wrapper.id = `view-${escapeHTML(activeLocation.city)}`;
 
             wrapper.innerHTML = `
                 <div class="weather-section" id="weather-section">
@@ -803,18 +800,23 @@
                 const themeClass = isDayTime ? 'tab-day' : 'tab-night';
 
                 btn.className = `tab ${themeClass} ${isActive ? 'active' : ''}`;
-                btn.onclick = () => switchTab(location.city);
+                
+                btn.addEventListener('click', () => switchTab(location.city));
                 
                 btn.innerHTML = `
-                    <button class="tab-close" onclick="removeCity('${location.city}', event)">&times;</button>
+                    <button class="tab-close">&times;</button>
                     <div class="tab-content-wrapper">
-                        <div class="tab-city-name">${location.city}</div>
+                        <div class="tab-city-name">${escapeHTML(location.city)}</div>
                         <div class="tab-datetime">
                             <span id="tab-date-${safeId}">----/--/--</span>
                             <span id="tab-time-${safeId}" class="time-highlight">--:--:--</span>
                         </div>
                     </div>
                 `;
+
+                const closeBtn = btn.querySelector('.tab-close');
+                closeBtn.addEventListener('click', (event) => removeCity(location.city, event));
+
                 container.appendChild(btn);
             });
 
@@ -851,14 +853,14 @@
             return `${h}:${minStr} ${ampm}`;
         }
 
-        // --- Fetch & Draw Weather Data ---
         async function fetchWeather(lat, lon, tz, cityName) {
             const cached = weatherCache[cityName];
             if (cached && (Date.now() - cached.timestamp < CACHE_DURATION)) {
                 return cached.data;
             }
 
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,dew_point_2m,surface_pressure,wind_speed_10m,is_day,weather_code&hourly=temperature_2m,weather_code&daily=sunrise,sunset,uv_index_max,temperature_2m_max,temperature_2m_min,weather_code&timezone=${tz}&wind_speed_unit=mph`;
+            // --- NEW: Added 'is_day' to the hourly API request string ---
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,dew_point_2m,surface_pressure,wind_speed_10m,is_day,weather_code&hourly=temperature_2m,weather_code,is_day&daily=sunrise,sunset,uv_index_max,temperature_2m_max,temperature_2m_min,weather_code&timezone=${tz}&wind_speed_unit=mph`;
             
             try {
                 const response = await fetch(url);
@@ -882,14 +884,17 @@
                 let timeStr = formatOpenMeteoTime(data.hourly.time[i]);
                 let tempC = data.hourly.temperature_2m[i];
                 let tempF = cToF(tempC);
-                let condition = getWeatherDescription(data.hourly.weather_code[i]);
+                
+                // --- NEW: Identify if this specific forecasted hour is day or night ---
+                let isDayFlag = (data.hourly.is_day && data.hourly.is_day[i] !== undefined) ? (data.hourly.is_day[i] === 1) : true;
+                let condition = getWeatherDescription(data.hourly.weather_code[i], isDayFlag);
                 
                 hourlyHtml += `
                     <div class="forecast-item">
-                        <span class="forecast-time">${timeStr}</span>
+                        <span class="forecast-time">${escapeHTML(timeStr)}</span>
                         <div class="forecast-condition">
                             <span class="forecast-icon">${condition.icon}</span>
-                            <span class="forecast-cond-text">${condition.text}</span>
+                            <span class="forecast-cond-text">${escapeHTML(condition.text)}</span>
                         </div>
                         <span class="forecast-temp-main">${tempC}°C <span class="temp-f-sub">/ ${tempF}°F</span></span>
                     </div>
@@ -907,15 +912,17 @@
                 let maxC = data.daily.temperature_2m_max[i];
                 let minF = cToF(minC);
                 let maxF = cToF(maxC);
-                let condition = getWeatherDescription(data.daily.weather_code[i]);
+                
+                // For daily overview, we assume Day logic (True) to show general sun/clouds
+                let condition = getWeatherDescription(data.daily.weather_code[i], true);
 
                 dailyHtml += `
                     <div class="forecast-item">
-                        <span class="forecast-time">${dayStr}</span>
+                        <span class="forecast-time">${escapeHTML(dayStr)}</span>
                         
                         <div class="forecast-condition">
                             <span class="forecast-icon">${condition.icon}</span>
-                            <span class="forecast-cond-text">${condition.text}</span>
+                            <span class="forecast-cond-text">${escapeHTML(condition.text)}</span>
                         </div>
 
                         <div class="forecast-temps-daily">
@@ -946,7 +953,9 @@
                 const sunset = formatOpenMeteoTime(day.sunset[0]);
 
                 const forecasts = generateForecastHtml(data);
-                const currentCondition = getWeatherDescription(cur.weather_code);
+                
+                // --- NEW: Ensure the top card knows if it is Day or Night right now ---
+                const currentCondition = getWeatherDescription(cur.weather_code, isDay);
 
                 section.innerHTML = `
                     <div class="view-toggle">
@@ -958,7 +967,7 @@
                         <div class="bento-card card-temp">
                             <span class="metric-label">Condition & Temp</span>
                             <div class="metric-value" style="font-size: var(--font-md); margin-bottom: 5px;">
-                                ${currentCondition.icon} ${currentCondition.text}
+                                ${currentCondition.icon} ${escapeHTML(currentCondition.text)}
                             </div>
                             <div class="metric-value">${cur.temperature_2m}°C</div>
                             <div class="metric-value" style="font-size:var(--font-md); margin-top:4px; opacity:0.85;">${cToF(cur.temperature_2m)}°F</div>
@@ -966,8 +975,8 @@
                         </div>
                         <div class="bento-card card-sun">
                             <span class="metric-label">Sunrise & Sunset</span>
-                            <span class="metric-value">🌅 ${sunrise}</span>
-                            <span class="metric-value" style="margin-top: 10px; color: #fbbf24;">🌇 ${sunset}</span>
+                            <span class="metric-value">🌅 ${escapeHTML(sunrise)}</span>
+                            <span class="metric-value" style="margin-top: 10px; color: #fbbf24;">🌇 ${escapeHTML(sunset)}</span>
                         </div>
                         <div class="bento-card">
                             <span class="metric-label">Humidity</span>
@@ -1005,7 +1014,7 @@
             }
         }
 
-        // --- Listeners ---
+        // --- Standard Event Listeners ---
         document.addEventListener('click', (event) => {
             const isTab = event.target.closest('.tab');
             const isContent = event.target.closest('.content-area');
@@ -1019,11 +1028,12 @@
             }
         });
 
+        document.getElementById('add-city-btn').addEventListener('click', addCity);
+
         document.getElementById('city-search').addEventListener('keypress', e => { 
             if (e.key === 'Enter') addCity(); 
         });
 
-        // Start App
         init();
 
     </script>
