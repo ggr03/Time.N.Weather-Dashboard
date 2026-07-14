@@ -2,7 +2,7 @@
 
     Created by:     GGR, Maryland, USA
     Date:           2026-07-09
-    Version:        1.12
+    Version:        1.14
     Link:           https://github.com/ggr03/Time.N.Weather-Dashboard
     About:          Global Time & Weather dashboard for the Vivaldi Browser Side Panel.
     Note(s):        Created for the Vivaldi Browser community (https://vivaldi.com)
@@ -1152,6 +1152,11 @@
                 const nextMoons = getNextMoonDates(now, location.tz);
                 
                 const sunTimes = SunCalc.getTimes(now, location.lat, location.lon);
+                // Get general Sun Position (Azimuth & Altitude) in degrees
+                const sunPosData = SunCalc.getPosition(now, location.lat, location.lon);
+                const sunAzimuth = Math.round((sunPosData.azimuth * 180 / Math.PI + 180) % 360); // Compass bearing
+                const sunAltitude = Math.round(sunPosData.altitude * 180 / Math.PI);
+
                 const fmtSun = (d) => {
                     if (!d || isNaN(d.getTime())) return "--:--";
                     // Updated to 24-hour clock
@@ -1186,6 +1191,23 @@
                             <span class="metric-value">🌛 ${escapeHTML(moonriseStr)}</span>
                             <span class="metric-value" style="margin-top: 10px; opacity: 0.8;">🌜 ${escapeHTML(moonsetStr)}</span>
                         </div>
+                        
+                        <div class="bento-card">
+                            <span class="metric-label">Solar Position</span>
+                            <span class="metric-value" style="font-size: var(--font-md);">☀️ Noon: ${fmtSun(sunTimes.solarNoon)}</span>
+                            <span class="metric-value" style="font-size: var(--font-md); margin-top: 6px;">🌑 Nadir: ${fmtSun(sunTimes.nadir)}</span>
+                            <div style="display: flex; justify-content: space-between; margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 10px;">
+                                <div style="display: flex; flex-direction: column;">
+                                    <span class="metric-label" style="margin-bottom: 2px;">Azimuth</span>
+                                    <span class="metric-value" style="font-size: var(--font-md);">${sunAzimuth}°</span>
+                                </div>
+                                <div style="display: flex; flex-direction: column; text-align: right;">
+                                    <span class="metric-label" style="margin-bottom: 2px;">Altitude</span>
+                                    <span class="metric-value" style="font-size: var(--font-md);">${sunAltitude}°</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="bento-card">
                             <span class="metric-label">Day & Night Length</span>
                             <span class="metric-value" style="font-size: var(--font-lg);">☀️ ${dayLengthStr}</span>
