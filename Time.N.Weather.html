@@ -23,6 +23,8 @@
     <title>Time & Weather</title>
     <link rel="icon" type="image/png" href="time.n.weather.png">
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.8.0/suncalc.min.js"></script>
+
     <style>
         /* --- BASE VARIABLES --- */
         :root {
@@ -294,6 +296,8 @@
             padding: 6px; 
             border-radius: 12px; 
             border: 1px solid var(--border-color); 
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         .toggle-btn { 
@@ -360,6 +364,84 @@
 
         .card-temp .metric-value { color: var(--accent-weather); }
         .card-sun .metric-value { font-size: var(--font-lg); color: #fbbf24; }
+        .card-moon .metric-value { font-size: var(--font-lg); color: #cbd5e1; }
+
+        /* --- LUNAR METRICS & LIGHTING --- */
+        .lighting-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            width: 100%;
+            margin-top: 16px;
+        }
+
+        .lighting-card {
+            background-color: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .lighting-card h4 {
+            font-size: var(--font-lg);
+            margin: 0;
+            color: var(--accent-weather);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.8rem;
+        }
+
+        .lighting-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .lighting-label {
+            font-size: var(--font-sm);
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .lighting-time {
+            font-size: var(--font-lg);
+            font-weight: 700;
+            color: var(--text-main);
+            font-family: monospace;
+        }
+
+        .twilight-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border-top: 1px dashed var(--border-color);
+            padding-top: 1rem;
+        }
+
+        .twilight-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: var(--font-md);
+        }
+
+        .twilight-row span:first-child {
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .twilight-row span:last-child {
+            font-family: monospace;
+            font-weight: 700;
+            color: var(--text-main);
+        }
 
         /* --- FORECAST LISTS --- */
         .forecast-view { 
@@ -384,7 +466,7 @@
         }
 
         .hourly-list { 
-            max-height: 350px; 
+            max-height: 400px; 
             overflow-y: auto; 
             scrollbar-width: thin; 
             scrollbar-color: var(--border-color) transparent; 
@@ -468,6 +550,16 @@
             width: 100%;
         }
 
+        .error-card {
+            background-color: rgba(248, 113, 113, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            width: 100%;
+        }
+
         /* --- RESPONSIVE DESIGN --- */
         @media (max-width: 768px) {
             .main-container { 
@@ -489,13 +581,16 @@
                 width: auto; 
                 min-width: 180px; 
             }
+            .view-toggle {
+                flex-direction: column;
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
 
-    <div class="page-header">
-        </div>
+    <div class="page-header"></div>
     
     <div class="main-container">
         
@@ -513,6 +608,13 @@
     </div>
 
     <script>
+        // Configure custom angles for SunCalc photo lighting (-8 deg and -4 deg)
+        if (typeof SunCalc !== 'undefined' && !SunCalc._customAnglesAdded) {
+            SunCalc.addTime(-8, 'blueHourMorningStart', 'blueHourEveningEnd');
+            SunCalc.addTime(-4, 'blueHourMorningEnd', 'blueHourEveningStart');
+            SunCalc._customAnglesAdded = true;
+        }
+
         // Data and State
         const cityData = [
             { city: "Anchorage", country: "United States", tz: "America/Anchorage", lat: 61.2181, lon: -149.9003 },
@@ -619,22 +721,14 @@
         let geoResults = {};
         const GEO_MIN_CHARS = 2;
 
-        // --- Security Sanitizer Function to prevent XSS ---
         function escapeHTML(str) {
             if (typeof str !== 'string') return str;
             return str.replace(/[&<>'"]/g, function(match) {
-                const escape = {
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    "'": '&#39;',
-                    '"': '&quot;'
-                };
+                const escape = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
                 return escape[match];
             });
         }
 
-        // --- Live API Geocoding ---
         document.getElementById('city-search').addEventListener('input', e => {
             const q = e.target.value.trim();
             clearTimeout(geoDebounceTimer);
@@ -656,11 +750,7 @@
                 data.results.forEach(r => {
                     const label = r.admin1 ? `${r.name}, ${r.admin1}, ${r.country}` : `${r.name}, ${r.country}`;
                     geoResults[label.toLowerCase()] = {
-                        city: label,
-                        country: r.country,
-                        tz: r.timezone,
-                        lat: r.latitude,
-                        lon: r.longitude
+                        city: label, country: r.country, tz: r.timezone, lat: r.latitude, lon: r.longitude
                     };
                 });
 
@@ -674,12 +764,8 @@
             } catch (e) { console.error("Geocoding Error:", e); }
         }
 
-        // --- Core Functions ---
-        function cToF(c) { 
-            return Math.round((c * 1.8 + 32) * 10) / 10; 
-        }
+        function cToF(c) { return Math.round((c * 1.8 + 32) * 10) / 10; }
 
-        // --- NEW: Added isDay parameter for correct Nighttime Icons ---
         function getWeatherDescription(code, isDay = true) {
             if (code === 0) return { icon: isDay ? "☀️" : "🌙", text: isDay ? "Sunny / Clear" : "Clear Night" };
             if (code === 1 || code === 2) return { icon: isDay ? "⛅" : "☁️", text: "Partly Cloudy" };
@@ -697,6 +783,16 @@
             return { icon: "🌡️", text: "Unknown" };
         }
 
+        function getAqiDescription(aqi) {
+            if (aqi === null || aqi === undefined) return { text: "No Data", color: "#94a3b8" };
+            if (aqi <= 50) return { text: "Good", color: "#4ade80" };
+            if (aqi <= 100) return { text: "Moderate", color: "#facc15" };
+            if (aqi <= 150) return { text: "Unhealthy for Sensitive Groups", color: "#fb923c" };
+            if (aqi <= 200) return { text: "Unhealthy", color: "#f87171" };
+            if (aqi <= 300) return { text: "Very Unhealthy", color: "#c084fc" };
+            return { text: "Hazardous", color: "#a855f7" };
+        }
+
         function init() {
             const dataList = document.getElementById('city-list');
             cityData.sort((a, b) => a.city.localeCompare(b.city)).forEach(location => {
@@ -705,8 +801,7 @@
                 dataList.appendChild(option);
             });
 
-            // Updating cache key to ensure old data without is_day parameter doesn't break
-            const saved = localStorage.getItem('dashboardCitiesV13');
+            const saved = localStorage.getItem('dashboardCitiesV15B');
             if (saved) {
                 myCities = JSON.parse(saved);
                 activeCityName = null; 
@@ -716,9 +811,7 @@
             setInterval(updateLiveClock, 1000);
         }
 
-        function saveToLocal() { 
-            localStorage.setItem('dashboardCitiesV13', JSON.stringify(myCities)); 
-        }
+        function saveToLocal() { localStorage.setItem('dashboardCitiesV15B', JSON.stringify(myCities)); }
 
         function addCity() {
             const input = document.getElementById('city-search');
@@ -754,10 +847,13 @@
 
         window.switchSubTab = function(tabName) {
             document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('btn-' + tabName).classList.add('active');
+            const btn = document.getElementById('btn-' + tabName);
+            if (btn) btn.classList.add('active');
             
             document.getElementById('bento-view').style.display = tabName === 'local' ? 'grid' : 'none';
-            document.getElementById('forecast-view').style.display = tabName === 'forecast' ? 'block' : 'none';
+            document.getElementById('hourly-view').style.display = tabName === 'hourly' ? 'block' : 'none';
+            document.getElementById('daily-view').style.display = tabName === 'daily' ? 'block' : 'none';
+            document.getElementById('lunar-view').style.display = tabName === 'lunar' ? 'block' : 'none';
         }
 
         async function renderApp() {
@@ -800,7 +896,6 @@
                 const themeClass = isDayTime ? 'tab-day' : 'tab-night';
 
                 btn.className = `tab ${themeClass} ${isActive ? 'active' : ''}`;
-                
                 btn.addEventListener('click', () => switchTab(location.city));
                 
                 btn.innerHTML = `
@@ -825,7 +920,6 @@
 
         function updateLiveClock() {
             const now = new Date();
-
             myCities.forEach(location => {
                 const safeId = location.city.replace(/[^a-zA-Z0-9]/g, '-');
                 const tabTimeEl = document.getElementById(`tab-time-${safeId}`);
@@ -835,7 +929,6 @@
                     tabTimeEl.textContent = now.toLocaleTimeString('en-US', {
                         timeZone: location.tz, hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
                     });
-                    
                     tabDateEl.textContent = now.toLocaleDateString('en-US', {
                         timeZone: location.tz, weekday: 'short', month: 'short', day: 'numeric'
                     });
@@ -843,14 +936,11 @@
             });
         }
 
+        // Updated for 24-hour clock
         function formatOpenMeteoTime(isoStr) {
             if (!isoStr) return "--:--";
             const timePart = isoStr.split('T')[1];
-            const [hourStr, minStr] = timePart.split(':');
-            let h = parseInt(hourStr, 10);
-            const ampm = h >= 12 ? 'PM' : 'AM';
-            h = h % 12 || 12;
-            return `${h}:${minStr} ${ampm}`;
+            return timePart ? timePart : "--:--";
         }
 
         async function fetchWeather(lat, lon, tz, cityName) {
@@ -859,35 +949,46 @@
                 return cached.data;
             }
 
-            // --- NEW: Added 'is_day' to the hourly API request string ---
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,dew_point_2m,surface_pressure,wind_speed_10m,is_day,weather_code&hourly=temperature_2m,weather_code,is_day&daily=sunrise,sunset,uv_index_max,temperature_2m_max,temperature_2m_min,weather_code&timezone=${tz}&wind_speed_unit=mph`;
+            const encTz = encodeURIComponent(tz);
+            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,dew_point_2m,surface_pressure,wind_speed_10m,is_day,weather_code&hourly=temperature_2m,weather_code,is_day&daily=sunrise,sunset,uv_index_max,temperature_2m_max,temperature_2m_min,weather_code&timezone=${encTz}&wind_speed_unit=mph`;
+            const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi&timezone=${encTz}`;
             
             try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error("Network error");
+                const [weatherRes, aqiRes] = await Promise.all([fetch(weatherUrl), fetch(aqiUrl)]);
                 
-                const data = await response.json();
+                if (!weatherRes.ok) {
+                    const err = await weatherRes.text();
+                    throw new Error(`Weather API Error: ${err}`);
+                }
+                
+                const weatherData = await weatherRes.json();
+                let aqiData = null;
+                if (aqiRes.ok) aqiData = await aqiRes.json();
+
+                const data = { ...weatherData, airQuality: aqiData };
                 weatherCache[cityName] = { data: data, timestamp: Date.now() };
                 return data;
             } catch (error) { 
+                console.error(error);
                 return null; 
             }
         }
 
         function generateForecastHtml(data) {
-            const currentIso = data.current.time; 
-            let startIndex = data.hourly.time.indexOf(currentIso);
+            const currentIso = data.current?.time; 
+            let startIndex = data.hourly?.time?.indexOf(currentIso) ?? 0;
             if (startIndex === -1) startIndex = 0; 
             
             let hourlyHtml = '<div class="forecast-list hourly-list">';
-            for(let i = startIndex; i < startIndex + 24; i++) {
+            const maxHourly = Math.min(startIndex + 24, data.hourly?.time?.length || 0);
+            
+            for(let i = startIndex; i < maxHourly; i++) {
                 let timeStr = formatOpenMeteoTime(data.hourly.time[i]);
-                let tempC = data.hourly.temperature_2m[i];
+                let tempC = data.hourly.temperature_2m?.[i] ?? 0;
                 let tempF = cToF(tempC);
                 
-                // --- NEW: Identify if this specific forecasted hour is day or night ---
                 let isDayFlag = (data.hourly.is_day && data.hourly.is_day[i] !== undefined) ? (data.hourly.is_day[i] === 1) : true;
-                let condition = getWeatherDescription(data.hourly.weather_code[i], isDayFlag);
+                let condition = getWeatherDescription(data.hourly.weather_code?.[i] ?? 0, isDayFlag);
                 
                 hourlyHtml += `
                     <div class="forecast-item">
@@ -896,25 +997,26 @@
                             <span class="forecast-icon">${condition.icon}</span>
                             <span class="forecast-cond-text">${escapeHTML(condition.text)}</span>
                         </div>
-                        <span class="forecast-temp-main">${tempC}°C <span class="temp-f-sub">/ ${tempF}°F</span></span>
+                        <span class="forecast-temp-main">${Math.round(tempC)}°C <span class="temp-f-sub">/ ${Math.round(tempF)}°F</span></span>
                     </div>
                 `;
             }
             hourlyHtml += '</div>';
 
             let dailyHtml = '<div class="forecast-list">';
-            for(let i = 0; i < data.daily.time.length; i++) {
+            const maxDaily = data.daily?.time?.length || 0;
+            
+            for(let i = 0; i < maxDaily; i++) {
                 let dateObj = new Date(data.daily.time[i]);
                 dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
                 let dayStr = dateObj.toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'});
                 
-                let minC = data.daily.temperature_2m_min[i];
-                let maxC = data.daily.temperature_2m_max[i];
+                let minC = data.daily.temperature_2m_min?.[i] ?? 0;
+                let maxC = data.daily.temperature_2m_max?.[i] ?? 0;
                 let minF = cToF(minC);
                 let maxF = cToF(maxC);
                 
-                // For daily overview, we assume Day logic (True) to show general sun/clouds
-                let condition = getWeatherDescription(data.daily.weather_code[i], true);
+                let condition = getWeatherDescription(data.daily.weather_code?.[i] ?? 0, true);
 
                 dailyHtml += `
                     <div class="forecast-item">
@@ -926,8 +1028,8 @@
                         </div>
 
                         <div class="forecast-temps-daily">
-                            <span class="temp-row temp-max">High: ${maxC}°C <span class="temp-f-sub">(${maxF}°F)</span></span>
-                            <span class="temp-row temp-min">Low: ${minC}°C <span class="temp-f-sub">(${minF}°F)</span></span>
+                            <span class="temp-row temp-max">High: ${Math.round(maxC)}°C <span class="temp-f-sub">(${Math.round(maxF)}°F)</span></span>
+                            <span class="temp-row temp-min">Low: ${Math.round(minC)}°C <span class="temp-f-sub">(${Math.round(minF)}°F)</span></span>
                         </div>
                     </div>
                 `;
@@ -935,6 +1037,44 @@
             dailyHtml += '</div>';
 
             return { hourlyHtml, dailyHtml };
+        }
+
+        // Helper to calculate upcoming Full Moon and New Moon calendar dates
+        function getNextMoonDates(now, tz) {
+            let nextFull = null;
+            let nextNew = null;
+            let prevPhase = SunCalc.getMoonIllumination(now).phase;
+            
+            for (let i = 1; i <= 35 * 24; i++) {
+                let checkDate = new Date(now.getTime() + i * 3600 * 1000);
+                let phase = SunCalc.getMoonIllumination(checkDate).phase;
+                
+                if (!nextFull && prevPhase < 0.5 && phase >= 0.5) {
+                    nextFull = checkDate;
+                }
+                if (!nextNew && prevPhase > 0.8 && phase < 0.2) {
+                    nextNew = checkDate;
+                }
+                prevPhase = phase;
+                if (nextFull && nextNew) break;
+            }
+
+            const opts = { timeZone: tz, month: 'short', day: 'numeric', year: 'numeric' };
+            return {
+                fullDate: nextFull ? nextFull.toLocaleDateString('en-US', opts) : "--",
+                newDate: nextNew ? nextNew.toLocaleDateString('en-US', opts) : "--"
+            };
+        }
+
+        function getMoonPhaseInfo(phase) {
+            if (phase < 0.03 || phase > 0.97) return { name: "New Moon", icon: "🌑" };
+            if (phase < 0.22) return { name: "Waxing Crescent", icon: "🌒" };
+            if (phase < 0.28) return { name: "First Quarter", icon: "🌓" };
+            if (phase < 0.47) return { name: "Waxing Gibbous", icon: "🌔" };
+            if (phase < 0.53) return { name: "Full Moon", icon: "🌕" };
+            if (phase < 0.72) return { name: "Waning Gibbous", icon: "🌖" };
+            if (phase < 0.78) return { name: "Last Quarter", icon: "🌗" };
+            return { name: "Waning Crescent", icon: "🌘" };
         }
 
         async function renderWeatherMetrics(location, wrapperElement) {
@@ -945,22 +1085,85 @@
             if (data && data.current) {
                 const cur = data.current;
                 const day = data.daily;
+                const aqi = data.airQuality && data.airQuality.current ? data.airQuality.current : null;
                 
                 const isDay = cur.is_day === 1;
                 wrapperElement.className = `content-area active ${isDay ? 'theme-day' : 'theme-night'}`;
 
-                const sunrise = formatOpenMeteoTime(day.sunrise[0]);
-                const sunset = formatOpenMeteoTime(day.sunset[0]);
+                const sunriseIso = day?.sunrise?.[0];
+                const sunsetIso = day?.sunset?.[0];
+                const sunrise = formatOpenMeteoTime(sunriseIso);
+                const sunset = formatOpenMeteoTime(sunsetIso);
+
+                // Calculate Day and Night Length
+                let dayLengthStr = "--";
+                let nightLengthStr = "--";
+                if (sunriseIso && sunsetIso) {
+                    const srDate = new Date(sunriseIso);
+                    const ssDate = new Date(sunsetIso);
+                    let diffMs = ssDate.getTime() - srDate.getTime();
+                    
+                    if (diffMs > 0) {
+                        const totalMins = Math.floor(diffMs / 60000);
+                        const dHours = Math.floor(totalMins / 60);
+                        const dMins = totalMins % 60;
+                        dayLengthStr = `${dHours}h ${dMins}m`;
+                        
+                        const nDiffMs = (24 * 60 * 60 * 1000) - diffMs;
+                        const nTotalMins = Math.floor(nDiffMs / 60000);
+                        const nHours = Math.floor(nTotalMins / 60);
+                        const nMins = nTotalMins % 60;
+                        nightLengthStr = `${nHours}h ${nMins}m`;
+                    }
+                }
+                
+                let moonriseStr = "--:--";
+                let moonsetStr = "--:--";
+                const now = new Date();
+                
+                if (typeof SunCalc !== 'undefined') {
+                    const moonTimes = SunCalc.getMoonTimes(now, location.lat, location.lon);
+                    // Updated to 24-hour clock
+                    const formatMoonTime = (dateObj) => {
+                        if (!dateObj || isNaN(dateObj.getTime())) return "--:--";
+                        return dateObj.toLocaleTimeString('en-US', {
+                            timeZone: location.tz, hour: '2-digit', minute: '2-digit', hour12: false
+                        });
+                    };
+                    if (moonTimes.rise) moonriseStr = formatMoonTime(moonTimes.rise);
+                    if (moonTimes.set) moonsetStr = formatMoonTime(moonTimes.set);
+                }
+
+                let aqiVal = "--";
+                let aqiObj = { text: "Data Unavailable", color: "inherit" };
+                if (aqi && aqi.us_aqi !== null) {
+                    aqiVal = aqi.us_aqi;
+                    aqiObj = getAqiDescription(aqiVal);
+                }
 
                 const forecasts = generateForecastHtml(data);
+                const currentCondition = getWeatherDescription(cur.weather_code ?? 0, isDay);
+
+                // Calculate Lunar & Lighting stats
+                const moonIllum = SunCalc.getMoonIllumination(now);
+                const moonPos = SunCalc.getMoonPosition(now, location.lat, location.lon);
+                const moonPhaseInfo = getMoonPhaseInfo(moonIllum.phase);
+                const moonAgeDays = Math.round(moonIllum.phase * 29.530588 * 10) / 10;
+                const nextMoons = getNextMoonDates(now, location.tz);
                 
-                // --- NEW: Ensure the top card knows if it is Day or Night right now ---
-                const currentCondition = getWeatherDescription(cur.weather_code, isDay);
+                const sunTimes = SunCalc.getTimes(now, location.lat, location.lon);
+                const fmtSun = (d) => {
+                    if (!d || isNaN(d.getTime())) return "--:--";
+                    // Updated to 24-hour clock
+                    return d.toLocaleTimeString('en-US', { timeZone: location.tz, hour: '2-digit', minute: '2-digit', hour12: false });
+                };
 
                 section.innerHTML = `
                     <div class="view-toggle">
                         <button id="btn-local" class="toggle-btn active" onclick="switchSubTab('local')">Local Weather</button>
-                        <button id="btn-forecast" class="toggle-btn" onclick="switchSubTab('forecast')">Extended Forecast</button>
+                        <button id="btn-hourly" class="toggle-btn" onclick="switchSubTab('hourly')">24-Hour Forecast</button>
+                        <button id="btn-daily" class="toggle-btn" onclick="switchSubTab('daily')">7-Day Forecast</button>
+                        <button id="btn-lunar" class="toggle-btn" onclick="switchSubTab('lunar')">Lunar Metrics</button>
                     </div>
 
                     <div id="bento-view" class="bento-grid">
@@ -969,52 +1172,161 @@
                             <div class="metric-value" style="font-size: var(--font-md); margin-bottom: 5px;">
                                 ${currentCondition.icon} ${escapeHTML(currentCondition.text)}
                             </div>
-                            <div class="metric-value">${cur.temperature_2m}°C</div>
-                            <div class="metric-value" style="font-size:var(--font-md); margin-top:4px; opacity:0.85;">${cToF(cur.temperature_2m)}°F</div>
-                            <span class="metric-sub">Feels like ${cur.apparent_temperature}°C / ${cToF(cur.apparent_temperature)}°F</span>
+                            <div class="metric-value">${Math.round(cur.temperature_2m ?? 0)}°C</div>
+                            <div class="metric-value" style="font-size:var(--font-md); margin-top:4px; opacity:0.85;">${Math.round(cToF(cur.temperature_2m ?? 0))}°F</div>
+                            <span class="metric-sub">Feels like ${Math.round(cur.apparent_temperature ?? 0)}°C / ${Math.round(cToF(cur.apparent_temperature ?? 0))}°F</span>
                         </div>
                         <div class="bento-card card-sun">
                             <span class="metric-label">Sunrise & Sunset</span>
                             <span class="metric-value">🌅 ${escapeHTML(sunrise)}</span>
                             <span class="metric-value" style="margin-top: 10px; color: #fbbf24;">🌇 ${escapeHTML(sunset)}</span>
                         </div>
+                        <div class="bento-card card-moon">
+                            <span class="metric-label">Moonrise & Moonset</span>
+                            <span class="metric-value">🌛 ${escapeHTML(moonriseStr)}</span>
+                            <span class="metric-value" style="margin-top: 10px; opacity: 0.8;">🌜 ${escapeHTML(moonsetStr)}</span>
+                        </div>
+                        <div class="bento-card">
+                            <span class="metric-label">Day & Night Length</span>
+                            <span class="metric-value" style="font-size: var(--font-lg);">☀️ ${dayLengthStr}</span>
+                            <span class="metric-value" style="margin-top: 10px; color: #cbd5e1; font-size: var(--font-lg);">🌙 ${nightLengthStr}</span>
+                        </div>
+                        <div class="bento-card">
+                            <span class="metric-label">Air Quality (AQI)</span>
+                            <span class="metric-value" style="color: ${aqiObj.color};">${aqiVal}</span>
+                            <span class="metric-sub">${aqiObj.text}</span>
+                        </div>
                         <div class="bento-card">
                             <span class="metric-label">Humidity</span>
-                            <span class="metric-value">${cur.relative_humidity_2m}%</span>
-                            <span class="metric-sub">Dewpoint: ${cur.dew_point_2m}°C / ${cToF(cur.dew_point_2m)}°F</span>
+                            <span class="metric-value">${cur.relative_humidity_2m ?? 0}%</span>
+                            <span class="metric-sub">Dewpoint: ${Math.round(cur.dew_point_2m ?? 0)}°C / ${Math.round(cToF(cur.dew_point_2m ?? 0))}°F</span>
                         </div>
                         <div class="bento-card">
                             <span class="metric-label">Wind Speed</span>
-                            <span class="metric-value">${cur.wind_speed_10m}</span>
+                            <span class="metric-value">${cur.wind_speed_10m ?? 0}</span>
                             <span class="metric-sub">mph</span>
                         </div>
                         <div class="bento-card">
                             <span class="metric-label">Air Pressure</span>
-                            <span class="metric-value">${cur.surface_pressure}</span>
+                            <span class="metric-value">${cur.surface_pressure ?? 0}</span>
                             <span class="metric-sub">hPa</span>
                         </div>
                         <div class="bento-card">
                             <span class="metric-label">Max UV Index</span>
-                            <span class="metric-value">${day.uv_index_max[0] || "--"}</span>
+                            <span class="metric-value">${day?.uv_index_max?.[0] || "--"}</span>
                             <span class="metric-sub">Daily Peak</span>
                         </div>
                     </div>
 
-                    <div id="forecast-view" class="forecast-view">
+                    <div id="hourly-view" class="forecast-view">
                         <h3>Next 24 Hours</h3>
                         ${forecasts.hourlyHtml}
-                        
+                    </div>
+
+                    <div id="daily-view" class="forecast-view">
                         <h3>7-Day Forecast</h3>
                         ${forecasts.dailyHtml}
+                    </div>
+
+                    <div id="lunar-view" class="forecast-view">
+                        <div class="bento-grid">
+                            <div class="bento-card">
+                                <span class="metric-label">MOON PHASE</span>
+                                <div class="metric-value" style="font-size: 1.8rem; margin-bottom: 4px;">${moonPhaseInfo.icon}</div>
+                                <span class="metric-value" style="font-size: var(--font-md);">${moonPhaseInfo.name}</span>
+                            </div>
+                            <div class="bento-card">
+                                <span class="metric-label">ILLUMINATION</span>
+                                <div class="metric-value">${Math.round(moonIllum.fraction * 100)}%</div>
+                                <span class="metric-sub">Lit Surface Fraction</span>
+                            </div>
+                            <div class="bento-card">
+                                <span class="metric-label">EARTH DISTANCE</span>
+                                <div class="metric-value">${Math.round(moonPos.distance).toLocaleString()} km</div>
+                                <span class="metric-sub">Geocentric Distance</span>
+                            </div>
+                            <div class="bento-card">
+                                <span class="metric-label">NEXT FULL MOON</span>
+                                <div class="metric-value" style="font-size: var(--font-md);">${nextMoons.fullDate}</div>
+                            </div>
+                            <div class="bento-card">
+                                <span class="metric-label">NEXT NEW MOON</span>
+                                <div class="metric-value" style="font-size: var(--font-md);">${nextMoons.newDate}</div>
+                            </div>
+                            <div class="bento-card">
+                                <span class="metric-label">MOON AGE</span>
+                                <div class="metric-value">${moonAgeDays} days</div>
+                                <span class="metric-sub">Synodic Cycle Progress</span>
+                            </div>
+                        </div>
+
+                        <div class="lighting-grid">
+                            <div class="lighting-card">
+                                <h4>🌅 Morning Light</h4>
+                                <div class="lighting-item">
+                                    <span class="lighting-label">BLUE HOUR (-8° TO -4°)</span>
+                                    <span class="lighting-time">${fmtSun(sunTimes.blueHourMorningStart)} -&gt; ${fmtSun(sunTimes.blueHourMorningEnd)}</span>
+                                </div>
+                                <div class="lighting-item">
+                                    <span class="lighting-label">GOLDEN HOUR (-4° TO +6°)</span>
+                                    <span class="lighting-time">${fmtSun(sunTimes.blueHourMorningEnd)} -&gt; ${fmtSun(sunTimes.goldenHourEnd)}</span>
+                                </div>
+                                <div class="twilight-list">
+                                    <span class="lighting-label" style="margin-bottom: 4px;">MORNING TWILIGHTS</span>
+                                    <div class="twilight-row">
+                                        <span>Astronomical:</span>
+                                        <span>${fmtSun(sunTimes.nightEnd)} -&gt; ${fmtSun(sunTimes.nauticalDawn)}</span>
+                                    </div>
+                                    <div class="twilight-row">
+                                        <span>Nautical:</span>
+                                        <span>${fmtSun(sunTimes.nauticalDawn)} -&gt; ${fmtSun(sunTimes.dawn)}</span>
+                                    </div>
+                                    <div class="twilight-row">
+                                        <span>Civil:</span>
+                                        <span>${fmtSun(sunTimes.dawn)} -&gt; ${fmtSun(sunTimes.sunrise)}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="lighting-card">
+                                <h4>🌇 Evening Light</h4>
+                                <div class="lighting-item">
+                                    <span class="lighting-label">GOLDEN HOUR (+6° TO -4°)</span>
+                                    <span class="lighting-time">${fmtSun(sunTimes.goldenHour)} -&gt; ${fmtSun(sunTimes.blueHourEveningStart)}</span>
+                                </div>
+                                <div class="lighting-item">
+                                    <span class="lighting-label">BLUE HOUR (-4° TO -8°)</span>
+                                    <span class="lighting-time">${fmtSun(sunTimes.blueHourEveningStart)} -&gt; ${fmtSun(sunTimes.blueHourEveningEnd)}</span>
+                                </div>
+                                <div class="twilight-list">
+                                    <span class="lighting-label" style="margin-bottom: 4px;">EVENING TWILIGHTS</span>
+                                    <div class="twilight-row">
+                                        <span>Civil:</span>
+                                        <span>${fmtSun(sunTimes.sunset)} -&gt; ${fmtSun(sunTimes.dusk)}</span>
+                                    </div>
+                                    <div class="twilight-row">
+                                        <span>Nautical:</span>
+                                        <span>${fmtSun(sunTimes.dusk)} -&gt; ${fmtSun(sunTimes.nauticalDusk)}</span>
+                                    </div>
+                                    <div class="twilight-row">
+                                        <span>Astronomical:</span>
+                                        <span>${fmtSun(sunTimes.nauticalDusk)} -&gt; ${fmtSun(sunTimes.night)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 `;
 
             } else {
-                section.innerHTML = `<div class="loading-text" style="color: var(--danger);">Failed to load weather data.</div>`;
+                section.innerHTML = `
+                    <div class="error-card">
+                        <h3>Connection Failed</h3>
+                        <p>We couldn't reach the weather servers. Please check your internet connection or try searching for the city again.</p>
+                    </div>`;
             }
         }
 
-        // --- Standard Event Listeners ---
         document.addEventListener('click', (event) => {
             const isTab = event.target.closest('.tab');
             const isContent = event.target.closest('.content-area');
@@ -1035,7 +1347,6 @@
         });
 
         init();
-
     </script>
 </body>
 </html>
