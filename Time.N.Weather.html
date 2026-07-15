@@ -1,7 +1,7 @@
 <!--
     Created by:     GGR, Maryland, USA
     Date:           2026-07-14
-    Version:        1.19 (Added International languages Support, fixed City panel spacing)
+    Version:        1.25 (Re-arranged metrics, Added Pollutants info-card in place of Pollen, added Visibility)
     Link:           https://github.com/ggr03/Time.N.Weather-Dashboard
     About:          Global Time & Weather dashboard for the Vivaldi Browser Side Panel.
     Note(s):        Created for the Vivaldi Browser community (https://vivaldi.com)
@@ -16,7 +16,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
     <title>Time & Weather</title>
     <link rel="icon" type="image/png" href="time.n.weather.png">
     
@@ -35,16 +39,33 @@
         }
 
         /* --- GLOBAL STYLES --- */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        html {
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
         body { 
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             background-color: var(--bg-body); 
             color: #f8fafc; 
             margin: 0; 
             padding: 1rem; 
+            padding-top: max(1rem, env(safe-area-inset-top)); 
+            padding-bottom: max(1rem, env(safe-area-inset-bottom)); 
+            padding-left: max(1rem, env(safe-area-inset-left)); 
+            padding-right: max(1rem, env(safe-area-inset-right)); 
             min-height: 100vh; 
+            min-height: 100dvh; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
+            -webkit-tap-highlight-color: transparent; 
+            overflow-x: hidden; 
+            width: 100%; 
         }
 
         .page-header { 
@@ -95,7 +116,7 @@
             border: 1px solid #334155; 
             background-color: #1e293b; 
             color: #f8fafc; 
-            font-size: var(--font-md); 
+            font-size: max(16px, var(--font-md)); 
             outline: none; 
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
             width: 100%; 
@@ -129,7 +150,7 @@
             border: 1px solid #334155;
             background-color: #1e293b;
             color: #f8fafc;
-            font-size: var(--font-md);
+            font-size: max(16px, var(--font-md));
             outline: none;
             cursor: pointer;
             width: 100%;
@@ -150,30 +171,31 @@
             overflow-x: hidden; 
             scrollbar-width: thin; 
             scrollbar-color: #334155 transparent; 
-            padding: 12px; /* Adds space around the tabs to prevent clipping */
-            padding-right: 16px; /* Retains spacing for the scrollbar */
-            box-sizing: border-box; /* Ensures padding doesn't break the container's width */
+            padding: 12px 16px 12px 12px; 
+            box-sizing: border-box; 
+            -webkit-overflow-scrolling: touch; 
         }
 
         .tab { 
             padding: 24px 24px; 
             border-radius: 8px; 
-            border: 3px solid transparent; 
+            border: 2px solid transparent; 
             cursor: pointer; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
+            transition: all 0.2s; 
             width: 100%; 
             box-sizing: border-box; 
             position: relative; 
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); 
+            touch-action: manipulation; 
         }
 
         .tab.active { 
-            transform: scale(1.07); 
+            transform: scale(1.03); 
             border-color: #38bdf8; 
-            box-shadow: 0 15px 30px -5px rgba(56, 189, 248, 0.45); 
+            box-shadow: 0 10px 15px -3px rgba(56, 189, 248, 0.3); 
             z-index: 10; 
         }
 
@@ -197,7 +219,7 @@
         }
 
         .tab-city-name { 
-            font-weight: 350;
+            font-weight: 800; 
             font-size: var(--font-lg); 
             margin-bottom: 8px; 
         }
@@ -207,15 +229,14 @@
             flex-direction: column; 
             align-items: center; 
             gap: 4px; 
-            font-size: var(--font-md); 
-            font-family: monospace; 
+            font-size: var(--font-sm); 
         }
 
         .tab-day .tab-datetime { color: #cbd5e1; }
         .tab-night .tab-datetime { color: #94a3b8; }
 
         .time-highlight { 
-            font-size: 1.2em; 
+            font-size: var(--font-lg); 
             font-weight: bold; 
             color: inherit; 
         }
@@ -356,6 +377,11 @@
             background-color: var(--card-hover); 
         }
 
+        /* UV Tooltip Class */
+        .card-uv {
+            cursor: help;
+        }
+
         .metric-label { 
             color: var(--text-muted); 
             font-size: var(--font-sm); 
@@ -430,7 +456,6 @@
             font-size: var(--font-lg);
             font-weight: 700;
             color: var(--text-main);
-            font-family: monospace;
         }
 
         .twilight-list {
@@ -454,7 +479,6 @@
         }
 
         .twilight-row span:last-child {
-            font-family: monospace;
             font-weight: 700;
             color: var(--text-main);
         }
@@ -580,6 +604,7 @@
         @media (max-width: 768px) {
             .main-container { 
                 flex-direction: column; 
+                gap: 1rem; 
             }
             .sidebar { 
                 width: 100%; 
@@ -590,16 +615,67 @@
                 overflow-x: auto; 
                 overflow-y: hidden; 
                 max-height: unset; 
-                padding-right: 0; 
-                padding-bottom: 16px; 
+                padding: 12px 12px 16px 12px; 
+                gap: 12px; 
             }
             .tab { 
                 width: auto; 
-                min-width: 180px; 
+                min-width: 170px; 
+                padding: 18px 20px; 
+                flex-shrink: 0; 
             }
             .view-toggle {
                 flex-direction: column;
                 width: 100%;
+            }
+            .content-area {
+                padding: 1.5rem;
+                border-radius: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding-left: max(0.5rem, env(safe-area-inset-left));
+                padding-right: max(0.5rem, env(safe-area-inset-right));
+            }
+            .search-container > div {
+                flex-direction: column;
+            }
+            button.add-btn {
+                width: 100%;
+            }
+            .tab {
+                min-width: 150px;
+                padding: 14px 16px;
+            }
+            .content-area {
+                padding: 1rem;
+                border-radius: 12px;
+            }
+            .bento-card, .lighting-card {
+                padding: 1rem;
+            }
+            .lighting-grid {
+                grid-template-columns: 1fr;
+            }
+            .bento-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 10px;
+            }
+            .forecast-item {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            .tab-close {
+                width: 28px;
+                height: 28px;
+            }
+            .toggle-btn, button.add-btn {
+                min-height: 44px;
             }
         }
     </style>
@@ -658,22 +734,67 @@
 
         // Translation Dictionary
         const i18n = {
-            en: { loc: 'en-US', search: "Search any city worldwide...", add: "Add City", local: "Local Weather", h24: "24-Hour Forecast", d7: "7-Day Forecast", lunar: "Lunar Metrics", cond: "Condition & Temp", feels: "Feels like", sun: "Sunrise & Sunset", moon: "Moonrise & Moonset", aqi: "Air Quality (AQI)", hum: "Humidity", dew: "Dewpoint", wind: "Wind Speed", press: "Air Pressure", uv: "Max UV Index", aqi1: "Good", aqi2: "Moderate", aqi3: "Unhealthy for Sensitive", aqi4: "Unhealthy", aqi5: "Very Unhealthy", aqi6: "Hazardous", w0d: "Sunny / Clear", w0n: "Clear Night", w1: "Partly Cloudy", w3: "Overcast", w45: "Foggy", w51: "Drizzle", w56: "Freezing Drizzle", w61: "Rain", w66: "Freezing Rain", w71: "Snow", w80: "Showers", w85: "Snow Showers", w95: "Thunderstorm", w96: "Heavy Storm", unk: "Unknown", load: "Loading meteorological data...", err: "Connection Failed", err_txt: "We couldn't reach the weather servers. Please check your internet connection or try searching for the city again.", solar: "Solar Position", noon: "Noon", nadir: "Nadir", az: "Azimuth", alt: "Altitude", dn: "Day & Night Length", mPhase: "MOON PHASE", mIllum: "ILLUMINATION", mDist: "EARTH DISTANCE", mNextF: "NEXT FULL MOON", mNextN: "NEXT NEW MOON", mAge: "MOON AGE", m_sub1: "Lit Surface Fraction", m_sub2: "Geocentric Distance", m_sub3: "Synodic Cycle Progress", m_light: "Morning Light", e_light: "Evening Light", b_hour: "BLUE HOUR", g_hour: "GOLDEN HOUR", m_twi: "MORNING TWILIGHTS", e_twi: "EVENING TWILIGHTS", astro: "Astronomical:", naut: "Nautical:", civil: "Civil:" },
+            en: { loc: 'en-US', search: "Search any city worldwide...", add: "Add City", local: "Local Weather", h24: "24-Hour Forecast", d7: "7-Day Forecast", lunar: "Lunar Metrics", cond: "Current Condition", feels: "Feels like", sun: "Sunrise & Sunset", moon: "Moonrise & Moonset", aqi: "Air Quality (AQI)", hum: "Humidity", dew: "Dewpoint", wind: "Wind Speed", press: "Air Pressure", uv: "UV Index", uv_max: "Today's Max", aqi1: "Good", aqi2: "Moderate", aqi3: "Unhealthy for Sensitive", aqi4: "Unhealthy", aqi5: "Very Unhealthy", aqi6: "Hazardous", w0d: "Sunny / Clear", w0n: "Clear Night", w1: "Partly Cloudy", w3: "Overcast", w45: "Foggy", w51: "Drizzle", w56: "Freezing Drizzle", w61: "Rain", w66: "Freezing Rain", w71: "Snow", w80: "Showers", w85: "Snow Showers", w95: "Thunderstorm", w96: "Heavy Storm", unk: "Unknown", load: "Loading meteorological data...", err: "Connection Failed", err_txt: "We couldn't reach the weather servers. Please check your internet connection or try searching for the city again.", solar: "Solar Position", noon: "Noon", nadir: "Nadir", az: "Azimuth", alt: "Altitude", dn: "Day & Night Length", mPhase: "MOON PHASE", mIllum: "ILLUMINATION", mDist: "EARTH DISTANCE", mNextF: "NEXT FULL MOON", mNextN: "NEXT NEW MOON", mAge: "MOON AGE", m_sub1: "Lit Surface Fraction", m_sub2: "Geocentric Distance", m_sub3: "Synodic Cycle Progress", m_light: "Morning Light", e_light: "Evening Light", b_hour: "BLUE HOUR", g_hour: "GOLDEN HOUR", m_twi: "MORNING TWILIGHTS", e_twi: "EVENING TWILIGHTS", astro: "Astronomical:", naut: "Nautical:", civil: "Civil:", pollutants: "Pollutants", dust: "Dust", vis: "Visibility", vis1: "Clear", vis2: "Reduced", vis3: "Poor", vis_na: "Data unavailable" },
             es: { loc: 'es-ES', search: "Buscar cualquier ciudad...", add: "Añadir", local: "Tiempo Local", h24: "Pronóstico 24h", d7: "Pronóstico 7 días", lunar: "Métricas Lunares", cond: "Condición y Temp", feels: "Sensación térmica", sun: "Orto y Ocaso", moon: "Salida y Puesta de Luna", aqi: "Calidad del Aire", hum: "Humedad", dew: "Punto de rocío", wind: "Viento", press: "Presión", uv: "Índice UV", aqi1: "Bueno", aqi2: "Moderado", aqi3: "Dañino para Sensibles", aqi4: "Dañino", aqi5: "Muy Dañino", aqi6: "Peligroso", w0d: "Soleado", w0n: "Noche Despejada", w1: "Parcialmente Nublado", w3: "Nublado", w45: "Niebla", w51: "Llovizna", w56: "Llovizna Helada", w61: "Lluvia", w66: "Lluvia Helada", w71: "Nieve", w80: "Chubascos", w85: "Chubascos Nieve", w95: "Tormenta", w96: "Tormenta Fuerte", unk: "Desconocido", load: "Cargando datos...", err: "Error de Conexión", err_txt: "No se pudieron alcanzar los servidores.", solar: "Posición Solar", noon: "Mediodía", nadir: "Nadir", az: "Azimut", alt: "Altitud", dn: "Duración Día/Noche", mPhase: "FASE LUNAR", mIllum: "ILUMINACIÓN", mDist: "DISTANCIA A LA TIERRA", mNextF: "PRÓXIMA LUNA LLENA", mNextN: "PRÓXIMA LUNA NUEVA", mAge: "EDAD LUNAR", m_sub1: "Fracción de Superficie", m_sub2: "Distancia Geocéntrica", m_sub3: "Progreso Ciclo Sinódico", m_light: "Luz Matutina", e_light: "Luz Vespertina", b_hour: "HORA AZUL", g_hour: "HORA DORADA", m_twi: "CREPÚSCULO MATUTINO", e_twi: "CREPÚSCULO VESPERTINO", astro: "Astronómico:", naut: "Náutico:", civil: "Civil:" },
             fr: { loc: 'fr-FR', search: "Rechercher une ville...", add: "Ajouter", local: "Météo Locale", h24: "Prévisions 24h", d7: "Prévisions 7 jours", lunar: "Métriques Lunaires", cond: "Conditions et Temp", feels: "Ressenti", sun: "Lever & Coucher", moon: "Lever/Coucher Lune", aqi: "Qualité de l'Air", hum: "Humidité", dew: "Point de rosée", wind: "Vitesse du vent", press: "Pression", uv: "Indice UV", aqi1: "Bon", aqi2: "Modéré", aqi3: "Malsain (Sensibles)", aqi4: "Malsain", aqi5: "Très Malsain", aqi6: "Dangereux", w0d: "Ensoleillé", w0n: "Nuit Claire", w1: "Peu Nuageux", w3: "Couvert", w45: "Brouillard", w51: "Bruine", w56: "Bruine Verglaçante", w61: "Pluie", w66: "Pluie Verglaçante", w71: "Neige", w80: "Averses", w85: "Averses de Neige", w95: "Orage", w96: "Fort Orage", unk: "Inconnu", load: "Chargement...", err: "Échec de connexion", err_txt: "Impossible de joindre les serveurs.", solar: "Position Solaire", noon: "Midi", nadir: "Nadir", az: "Azimut", alt: "Altitude", dn: "Durée Jour/Nuit", mPhase: "PHASE LUNAIRE", mIllum: "ÉCLAIRAGE", mDist: "DISTANCE TERRE", mNextF: "PROCHAINE PLEINE LUNE", mNextN: "PROCHAINE NOUVELLE LUNE", mAge: "ÂGE LUNAIRE", m_sub1: "Fraction Éclairée", m_sub2: "Distance Géocentrique", m_sub3: "Cycle Synodique", m_light: "Lumière du Matin", e_light: "Lumière du Soir", b_hour: "HEURE BLEUE", g_hour: "HEURE DORÉE", m_twi: "CRÉPUSCULES MATIN", e_twi: "CRÉPUSCULES SOIR", astro: "Astronomique:", naut: "Nautique:", civil: "Civil:" },
-            de: { loc: 'de-DE', search: "Stadt suchen...", add: "Hinzufügen", local: "Lokales Wetter", h24: "24h-Vorhersage", d7: "7-Tage-Vorhersage", lunar: "Monddaten", cond: "Wetter & Temp", feels: "Gefühlt wie", sun: "Auf- & Untergang", moon: "Mondauf- & Untergang", aqi: "Luftqualität (AQI)", hum: "Feuchtigkeit", dew: "Taupunkt", wind: "Wind", press: "Luftdruck", uv: "Max UV-Index", aqi1: "Gut", aqi2: "Mäßig", aqi3: "Ungesund für Sensible", aqi4: "Ungesund", aqi5: "Sehr Ungesund", aqi6: "Gefährlich", w0d: "Sonnig / Klar", w0n: "Klare Nacht", w1: "Teilweise Bewölkt", w3: "Bedeckt", w45: "Nebel", w51: "Nieselregen", w56: "Eisiger Nieselregen", w61: "Regen", w66: "Eisregen", w71: "Schnee", w80: "Schauer", w85: "Schneeschauer", w95: "Gewitter", w96: "Starker Sturm", unk: "Unbekannt", load: "Wird geladen...", err: "Verbindung fehlgeschlagen", err_txt: "Wetterserver nicht erreichbar.", solar: "Sonnenstand", noon: "Mittag", nadir: "Nadir", az: "Azimut", alt: "Höhe", dn: "Tag- & Nachtlänge", mPhase: "MONDPHASE", mIllum: "BELEUCHTUNG", mDist: "ERDENTFERNUNG", mNextF: "NÄCHSTER VOLLMOND", mNextN: "NÄCHSTER NEUMOND", mAge: "MONDALTER", m_sub1: "Beleuchtete Fläche", m_sub2: "Geozentrische Distanz", m_sub3: "Synodischer Zyklus", m_light: "Morgenlicht", e_light: "Abendlicht", b_hour: "BLAUE STUNDE", g_hour: "GOLDENE STUNDE", m_twi: "MORGEN-DÄMMERUNG", e_twi: "ABEND-DÄMMERUNG", astro: "Astronomisch:", naut: "Nautisch:", civil: "Bürgerlich:" },
-            hi: { loc: 'hi-IN', search: "शहर खोजें...", add: "जोड़ें", local: "स्थानीय मौसम", h24: "24-घंटे का पूर्वानुमान", d7: "7-दिन का पूर्वानुमान", lunar: "चंद्र मेट्रिक्स", cond: "स्थिति और तापमान", feels: "महसूस होता है", sun: "सूर्योदय और सूर्यास्त", moon: "चंद्रोदय और चंद्रास्त", aqi: "वायु गुणवत्ता (AQI)", hum: "नमी", dew: "ओसांक", wind: "हवा", press: "हवा का दबाव", uv: "अधिकतम UV", aqi1: "अच्छा", aqi2: "मध्यम", aqi3: "संवेदनशील के लिए अस्वस्थ", aqi4: "अस्वस्थ", aqi5: "बहुत अस्वस्थ", aqi6: "खतरनाक", w0d: "धूप / साफ", w0n: "साफ रात", w1: "आंशिक रूप से बादल", w3: "बादल", w45: "कोहरा", w51: "बूंदाबांदी", w56: "ठंडी बूंदाबांदी", w61: "बारिश", w66: "ठंडी बारिश", w71: "बर्फबारी", w80: "बौछारें", w85: "बर्फ की बौछारें", w95: "आंधी", w96: "भारी तूफान", unk: "अज्ञात", load: "लोड हो रहा है...", err: "कनेक्शन विफल", err_txt: "सर्वर तक नहीं पहुंच सके।", solar: "सौर स्थिति", noon: "दोपहर", nadir: "नादिर", az: "दिगंश", alt: "ऊंचाई", dn: "दिन और रात की लंबाई", mPhase: "चंद्रमा का चरण", mIllum: "रोशनी", mDist: "पृथ्वी से दूरी", mNextF: "अगली पूर्णिमा", mNextN: "अगली अमावस्या", mAge: "चंद्रमा की आयु", m_sub1: "प्रकाशित सतह", m_sub2: "भू-केंद्रित दूरी", m_sub3: "चक्र प्रगति", m_light: "सुबह की रोशनी", e_light: "शाम की रोशनी", b_hour: "नीला समय", g_hour: "सुनहरा समय", m_twi: "सुबह की गोधूलि", e_twi: "शाम की गोधूलि", astro: "खगोलीय:", naut: "समुद्री:", civil: "नागरिक:" },
-            bn: { loc: 'bn-BD', search: "শহর খুঁজুন...", add: "যোগ করুন", local: "আবহাওয়া", h24: "২৪-ঘন্টার পূর্বাভাস", d7: "৭-দিনের পূর্বাভাস", lunar: "চন্দ্র মেট্রিক্স", cond: "অবস্থা এবং তাপমাত্রা", feels: "অনুভূত হয়", sun: "সূর্যোদয়/সূর্যাস্ত", moon: "চন্দ্রোদয়/চন্দ্রাস্ত", aqi: "বায়ু গুণমান", hum: "আর্দ্রতা", dew: "শিশিরাঙ্ক", wind: "বাতাস", press: "বায়ুর চাপ", uv: "UV সূচক", aqi1: "ভালো", aqi2: "মাঝারি", aqi3: "অস্বাস্থ্যকর (সংবেদনশীল)", aqi4: "অস্বাস্থ্যকর", aqi5: "খুব অস্বাস্থ্যকর", aqi6: "বিপজ্জনক", w0d: "রৌদ্রোজ্জ্বল", w0n: "পরিষ্কার রাত", w1: "আংশিক মেঘলা", w3: "মেঘাচ্ছন্ন", w45: "কুয়াশা", w51: "গুঁড়ি বৃষ্টি", w56: "হিমায়িত বৃষ্টি", w61: "বৃষ্টি", w66: "হিমায়িত বৃষ্টি", w71: "তুষারপাত", w80: "বর্ষণ", w85: "তুষার বর্ষণ", w95: "বজ্রঝড়", w96: "ভারী ঝড়", unk: "অজানা", load: "লোড হচ্ছে...", err: "সংযোগ ব্যর্থ", err_txt: "সার্ভারে পৌঁছানো যায়নি।", solar: "সৌর অবস্থান", noon: "দুপুর", nadir: "নাদির", az: "দিগংশ", alt: "উচ্চতা", dn: "দিন ও রাতের দৈর্ঘ্য", mPhase: "চন্দ্রের পর্ব", mIllum: "আলোকসজ্জা", mDist: "পৃথিবী থেকে দূরত্ব", mNextF: "পরবর্তী পূর্ণিমা", mNextN: "পরবর্তী অমাবস্যা", mAge: "চন্দ্রের বয়স", m_sub1: "আলোকিত পৃষ্ঠ", m_sub2: "ভূকেন্দ্রিক দূরত্ব", m_sub3: "চক্রের অগ্রগতি", m_light: "ভোরের আলো", e_light: "সন্ধ্যার আলো", b_hour: "নীল সময়", g_hour: "সোনালী সময়", m_twi: "ভোরের গোধূলি", e_twi: "সন্ধ্যার গোধূলি", astro: "জ্যোতির্বিদ্যা:", naut: "নটিক্যাল:", civil: "সিভিল:" },
-            ta: { loc: 'ta-IN', search: "உலகளாவிய நகரத்தை தேடுங்கள்...", add: "சேர்", local: "உள்ளூர் வானிலை", h24: "24-மணி நேர முன்னறிவிப்பு", d7: "7-நாள் முன்னறிவிப்பு", lunar: "சந்திர அளவீடுகள்", cond: "நிலைமை & வெப்பநிலை", feels: "உணரக்கூடிய வெப்பநிலை", sun: "சூரியோதயம் & அஸ்தமனம்", moon: "சந்திரோதயம் & அஸ்தமனம்", aqi: "காற்று தரம் (AQI)", hum: "ஈரப்பதம்", dew: "பனிப்புள்ளி", wind: "காற்றின் வேகம்", press: "காற்றழுத்தம்", uv: "அதிகபட்ச UV", aqi1: "நன்று", aqi2: "மிதமான", aqi3: "உணர்திறன் உள்ளவர்களுக்கு ஆரோக்கியமற்றது", aqi4: "ஆரோக்கியமற்றது", aqi5: "மிகவும் ஆரோக்கியமற்றது", aqi6: "ஆபத்தானது", w0d: "வெயில் / தெளிவு", w0n: "தெளிவான இரவு", w1: "பகுதியளவு மேகமூட்டம்", w3: "மேகமூட்டம்", w45: "பனிமூட்டம்", w51: "தூறல்", w56: "உறையும் தூறல்", w61: "மழை", w66: "உறையும் மழை", w71: "பனி", w80: "மழைத்தூறல்", w85: "பனித்தூறல்", w95: "இடியுடன் கூடிய மழை", w96: "கடுமையான புயல்", unk: "தெரியவில்லை", load: "ஏற்றுகிறது...", err: "இணைப்பு தோல்வி", err_txt: "வானிலை சேவையகங்களை அடைய முடியவில்லை.", solar: "சூரிய நிலை", noon: "நண்பகல்", nadir: "கீழ்நிலை", az: "திசைக்கோணம்", alt: "உயரம்", dn: "பகல் & இரவு நீளம்", mPhase: "சந்திர கட்டம்", mIllum: "ஒளிர்வு", mDist: "பூமி தூரம்", mNextF: "அடுத்த பௌர்ணமி", mNextN: "அடுத்த அமாவாசை", mAge: "சந்திர வயது", m_sub1: "ஒளிரும் மேற்பரப்பு", m_sub2: "புவிமைய தூரம்", m_sub3: "சுழற்சி முன்னேற்றம்", m_light: "காலை வெளிச்சம்", e_light: "மாலை வெளிச்சம்", b_hour: "நீல நேரம்", g_hour: "பொன் நேரம்", m_twi: "காலை அந்தி", e_twi: "மாலை அந்தி", astro: "வானியல்:", naut: "கடல்சார்:", civil: "சிவில்:" },
-            kn: { loc: 'kn-IN', search: "ನಗರವನ್ನು ಹುಡುಕಿ...", add: "ಸೇರಿಸಿ", local: "ಸ್ಥಳೀಯ ಹವಾಮಾನ", h24: "24-ಗಂಟೆಗಳ ಮುನ್ಸೂಚನೆ", d7: "7-ದಿನಗಳ ಮುನ್ಸೂಚನೆ", lunar: "ಚಂದ್ರನ ಮಾಪನಗಳು", cond: "ಸ್ಥಿತಿ ಮತ್ತು ತಾಪಮಾನ", feels: "ಅನುಭವಿಸುವ ತಾಪಮಾನ", sun: "ಸೂರ್ಯೋದಯ ಮತ್ತು ಸೂರ್ಯಾಸ್ತ", moon: "ಚಂದ್ರೋದಯ ಮತ್ತು ಚಂದ್ರಾಸ್ತ", aqi: "ವಾಯು ಗುಣಮಟ್ಟ (AQI)", hum: "ಆರ್ದ್ರತೆ", dew: "ಇಬ್ಬನಿ ಬಿಂದು", wind: "ಗಾಳಿಯ ವೇಗ", press: "ವಾಯುಮಂಡಲದ ಒತ್ತಡ", uv: "ಗರಿಷ್ಠ UV", aqi1: "ಉತ್ತಮ", aqi2: "ಮಧ್ಯಮ", aqi3: "ಸೂಕ್ಷ್ಮ ಜನರಿಗೆ ಅನಾರೋಗ್ಯಕರ", aqi4: "ಅನಾರೋಗ್ಯಕರ", aqi5: "ಅತ್ಯಂತ ಅನಾರೋಗ್ಯಕರ", aqi6: "ಅಪಾಯಕಾರಿ", w0d: "ಬಿಸಿಲು / ಸ್ಪಷ್ಟ", w0n: "ಸ್ಪಷ್ಟ ರಾತ್ರಿ", w1: "ಭಾಗಶಃ ಮೋಡ", w3: "ಮೋಡ ಕವಿದ", w45: "ಮಂಜು", w51: "ತುಂತುರು ಮಳೆ", w56: "ಹೆಪ್ಪುಗಟ್ಟುವ ತುಂತುರು", w61: "ಮಳೆ", w66: "ಹೆಪ್ಪುಗಟ್ಟುವ ಮಳೆ", w71: "ಹಿಮ", w80: "ಮಳೆಯ ಸುರಿಮಳೆ", w85: "ಹಿಮದ ಸುರಿಮಳೆ", w95: "ಗುಡುಗು ಸಹಿತ ಮಳೆ", w96: "ಭಾರೀ ಬಿರುಗಾಳಿ", unk: "ತಿಳಿದಿಲ್ಲ", load: "ಲೋಡ್ ಆಗುತ್ತಿದೆ...", err: "ಸಂಪರ್ಕ ವಿಫಲವಾಗಿದೆ", err_txt: "ಹವಾಮಾನ ಸರ್ವರ್‌ಗಳನ್ನು ತಲುಪಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.", solar: "ಸೌರ ಸ್ಥಾನ", noon: "ಮಧ್ಯಾಹ್ನ", nadir: "ಅಧೋಬಿಂದು", az: "ದಿಗಂಶ", alt: "ಎತ್ತರ", dn: "ಹಗಲು ಮತ್ತು ರಾತ್ರಿ ಉದ್ದ", mPhase: "ಚಂದ್ರನ ಹಂತ", mIllum: "ಬೆಳಕು", mDist: "ಭೂಮಿಯ ದೂರ", mNextF: "ಮುಂದಿನ ಹುಣ್ಣಿಮೆ", mNextN: "ಮುಂದಿನ ಅಮಾವಾಸ್ಯೆ", mAge: "ಚಂದ್ರನ ವಯಸ್ಸು", m_sub1: "ಬೆಳಗಿದ ಮೇಲ್ಮೈ", m_sub2: "ಭೂಕೇಂದ್ರಿತ ದೂರ", m_sub3: "ಚಕ್ರದ ಪ್ರಗತಿ", m_light: "ಬೆಳಗಿನ ಬೆಳಕು", e_light: "ಸಂಜೆಯ ಬೆಳಕು", b_hour: "ನೀಲಿ ಗಂಟೆ", g_hour: "ಸುವರ್ಣ ಗಂಟೆ", m_twi: "ಬೆಳಗಿನ ಮುಸ್ಸಂಜೆ", e_twi: "ಸಂಜೆಯ ಮುಸ್ಸಂಜೆ", astro: "ಖಗೋಳ:", naut: "ನಾವಿಕ:", civil: "ನಾಗರಿಕ:" },
-            te: { loc: 'te-IN', search: "నగరాన్ని శోధించండి...", add: "జోడించు", local: "స్థానిక వాతావరణం", h24: "24-గంటల సూచన", d7: "7-రోజుల సూచన", lunar: "చంద్ర కొలమానాలు", cond: "పరిస్థితి & ఉష్ణోగ్రత", feels: "అనిపించే ఉష్ణోగ్రత", sun: "సూర్యోదయం & సూర్యాస్తమయం", moon: "చంద్రోదయం & చంద్రాస్తమయం", aqi: "గాలి నాణ్యత (AQI)", hum: "తేమ", dew: "మంచు బిందువు", wind: "గాలి వేగం", press: "గాలి ఒత్తిడి", uv: "గరిష్ట UV", aqi1: "మంచిది", aqi2: "మితమైనది", aqi3: "సున్నితమైన వారికి అనారోగ్యకరం", aqi4: "అనారోగ్యకరం", aqi5: "చాలా అనారోగ్యకరం", aqi6: "ప్రమాదకరం", w0d: "ఎండ / స్పష్టమైనది", w0n: "స్పష్టమైన రాత్రి", w1: "పాక్షికంగా మేఘావృతం", w3: "మేఘావృతం", w45: "పొగమంచు", w51: "చినుకులు", w56: "గడ్డకట్టే చినుకులు", w61: "వర్షం", w66: "గడ్డకట్టే వర్షం", w71: "మంచు", w80: "జల్లులు", w85: "మంచు జల్లులు", w95: "ఉరుములతో కూడిన వర్షం", w96: "భారీ తుఫాను", unk: "తెలియదు", load: "లోడ్ అవుతోంది...", err: "కనెక్షన్ విఫలమైంది", err_txt: "వాతావరణ సర్వర్‌లను చేరుకోలేకపోయాము.", solar: "సౌర స్థానం", noon: "మధ్యాహ్నం", nadir: "నాదిర్", az: "అజిముత్", alt: "ఎత్తు", dn: "పగలు & రాత్రి నిడివి", mPhase: "చంద్రుని దశ", mIllum: "ప్రకాశం", mDist: "భూమి దూరం", mNextF: "తదుపరి పౌర్ణమి", mNextN: "తదుపరి అమావాస్య", mAge: "చంద్రుని వయస్సు", m_sub1: "ప్రకాశించే ఉపరితలం", m_sub2: "భూకేంద్రక దూరం", m_sub3: "చక్రం పురోగతి", m_light: "ఉదయం కాంతి", e_light: "సాయంత్రం కాంతి", b_hour: "బ్లూ అవర్", g_hour: "గోల్డెన్ అవర్", m_twi: "ఉదయం సంధ్య", e_twi: "సాయంత్రం సంధ్య", astro: "ఖగోళ:", naut: "నాటికల్:", civil: "సివిల్:" },
-            zh: { loc: 'zh-CN', search: "搜索城市...", add: "添加城市", local: "当地天气", h24: "24小时预报", d7: "7天预报", lunar: "月相数据", cond: "天气与温度", feels: "体感温度", sun: "日出 / 日落", moon: "月出 / 月落", aqi: "空气质量 (AQI)", hum: "湿度", dew: "露点", wind: "风速", press: "气压", uv: "最大紫外线", aqi1: "优", aqi2: "良", aqi3: "轻度污染", aqi4: "中度污染", aqi5: "重度污染", aqi6: "严重污染", w0d: "晴朗", w0n: "晴朗夜晚", w1: "多云", w3: "阴天", w45: "雾", w51: "毛毛雨", w56: "冻毛毛雨", w61: "雨", w66: "冻雨", w71: "雪", w80: "阵雨", w85: "阵雪", w95: "雷暴", w96: "强风暴", unk: "未知", load: "加载中...", err: "连接失败", err_txt: "无法连接到天气服务器，请检查网络。", solar: "太阳位置", noon: "正午", nadir: "天底", az: "方位角", alt: "高度角", dn: "昼夜时长", mPhase: "月相", mIllum: "照明度", mDist: "地月距离", mNextF: "下一个满月", mNextN: "下一个新月", mAge: "月龄", m_sub1: "发光表面比例", m_sub2: "地心距离", m_sub3: "朔望月进度", m_light: "晨光", e_light: "暮光", b_hour: "蓝调时刻", g_hour: "黄金时刻", m_twi: "清晨曙光", e_twi: "傍晚暮光", astro: "天文:", naut: "航海:", civil: "民用:" },
-            ja: { loc: 'ja-JP', search: "都市を検索...", add: "追加", local: "現地の天気", h24: "24時間予報", d7: "7日間予報", lunar: "月相データ", cond: "天候と温度", feels: "体感温度", sun: "日の出 / 日の入り", moon: "月の出 / 月の入り", aqi: "空気質 (AQI)", hum: "湿度", dew: "露点", wind: "風速", press: "気圧", uv: "最大UV", aqi1: "良好", aqi2: "普通", aqi3: "敏感な人には不健康", aqi4: "不健康", aqi5: "極めて不健康", aqi6: "危険", w0d: "晴れ", w0n: "快晴の夜", w1: "一部曇り", w3: "曇り", w45: "霧", w51: "霧雨", w56: "着氷性の霧雨", w61: "雨", w66: "着氷性の雨", w71: "雪", w80: "にわか雨", w85: "にわか雪", w95: "雷雨", w96: "激しい嵐", unk: "不明", load: "読み込み中...", err: "接続エラー", err_txt: "サーバーにアクセスできません。", solar: "太陽の位置", noon: "正午", nadir: "天底", az: "方位角", alt: "高度", dn: "昼夜の長さ", mPhase: "月相", mIllum: "照度", mDist: "地球からの距離", mNextF: "次の満月", mNextN: "次の新月", mAge: "月齢", m_sub1: "輝面比", m_sub2: "地心距離", m_sub3: "朔望月進行度", m_light: "朝の光", e_light: "夕方の光", b_hour: "ブルーアワー", g_hour: "ゴールデンアワー", m_twi: "朝の薄明", e_twi: "夕方の薄明", astro: "天文:", naut: "航海:", civil: "常用:" },
-            ko: { loc: 'ko-KR', search: "도시 검색...", add: "추가", local: "현재 날씨", h24: "24시간 예보", d7: "7일 예보", lunar: "달 데이터", cond: "상태 및 온도", feels: "체감 온도", sun: "일출 / 일몰", moon: "월출 / 월몰", aqi: "공기질 (AQI)", hum: "습도", dew: "이슬점", wind: "풍속", press: "기압", uv: "최대 UV", aqi1: "좋음", aqi2: "보통", aqi3: "민감군에 나쁨", aqi4: "나쁨", aqi5: "매우 나쁨", aqi6: "위험", w0d: "맑음", w0n: "맑은 밤", w1: "구름 조금", w3: "흐림", w45: "안개", w51: "이슬비", w56: "어는 이슬비", w61: "비", w66: "어는 비", w71: "눈", w80: "소나기", w85: "소낙눈", w95: "뇌우", w96: "강한 폭풍", unk: "알 수 없음", load: "로딩 중...", err: "연결 실패", err_txt: "서버에 연결할 수 없습니다.", solar: "태양 위치", noon: "정오", nadir: "천저", az: "방위각", alt: "고도", dn: "낮/밤 길이", mPhase: "달의 위상", mIllum: "조명", mDist: "지구 거리", mNextF: "다음 보름달", mNextN: "다음 초승달", mAge: "월령", m_sub1: "조명 비율", m_sub2: "지심 거리", m_sub3: "삭망월 진행", m_light: "아침 빛", e_light: "저녁 빛", b_hour: "블루 아워", g_hour: "골든 아워", m_twi: "아침 여명", e_twi: "저녁 여명", astro: "천문:", naut: "항해:", civil: "상용:" },
-            sw: { loc: 'sw-KE', search: "Tafuta mji...", add: "Ongeza", local: "Hali ya Hewa", h24: "Utabiri 24h", d7: "Utabiri Siku 7", lunar: "Metriki za Mwezi", cond: "Hali & Joto", feels: "Inahisi kama", sun: "Macheo & Machweo", moon: "Mwezi", aqi: "Ubora wa Hewa", hum: "Unyevu", dew: "Umande", wind: "Upepo", press: "Shinikizo", uv: "Max UV", aqi1: "Nzuri", aqi2: "Wastani", aqi3: "Sio nzuri", aqi4: "Mbaya", aqi5: "Mbaya Sana", aqi6: "Hatari", w0d: "Jua / Wazi", w0n: "Usiku Wazi", w1: "Mawingu Kiasi", w3: "Mawingu Mengi", w45: "Ukungu", w51: "Drizzle", w56: "Drizzle Inayoganda", w61: "Mvua", w66: "Mvua Inayoganda", w71: "Theluji", w80: "Mawimbi", w85: "Mawimbi Theluji", w95: "Ngurumo", w96: "Dhoruba Kali", unk: "Haijulikani", load: "Inapakia...", err: "Imeshindwa", err_txt: "Hatuwezi kufikia seva za hali ya hewa.", solar: "Nafasi ya Jua", noon: "Mchana", nadir: "Nadir", az: "Azimuth", alt: "Urefu", dn: "Urefu wa Mchana/Usiku", mPhase: "AWAMU MWEZI", mIllum: "MWANGA", mDist: "UMBALI DUNIA", mNextF: "MWEZI KAMILI", mNextN: "MWEZI MPYA", mAge: "UMRI MWEZI", m_sub1: "Sehemu Inayowaka", m_sub2: "Umbali", m_sub3: "Mzunguko", m_light: "Nuru ya Asubuhi", e_light: "Nuru ya Jioni", b_hour: "SAA YA BLUU", g_hour: "SAA YA DHAHABU", m_twi: "MAPAMBAZUKO", e_twi: "MACHWEO", astro: "Astronomical:", naut: "Nautical:", civil: "Civil:" }
+            de: { loc: 'de-DE', search: "Stadt suchen...", add: "Hinzufügen", local: "Lokales Wetter", h24: "24h-Vorhersage", d7: "7-Tage-Vorhersage", lunar: "Monddaten", cond: "Wetter & Temp", feels: "Gefühlt wie", sun: "Auf- & Untergang", moon: "Mondauf- & Untergang", aqi: "Luftqualität (AQI)", hum: "Feuchtigkeit", dew: "Taupunkt", wind: "Wind", press: "Luftdruck", uv: "UV-Index", aqi1: "Gut", aqi2: "Mäßig", aqi3: "Ungesund für Sensible", aqi4: "Ungesund", aqi5: "Sehr Ungesund", aqi6: "Gefährlich", w0d: "Sonnig / Klar", w0n: "Klare Nacht", w1: "Teilweise Bewölkt", w3: "Bedeckt", w45: "Nebel", w51: "Nieselregen", w56: "Eisiger Nieselregen", w61: "Regen", w66: "Eisregen", w71: "Schnee", w80: "Schauer", w85: "Schneeschauer", w95: "Gewitter", w96: "Starker Sturm", unk: "Unbekannt", load: "Wird geladen...", err: "Verbindung fehlgeschlagen", err_txt: "Wetterserver nicht erreichbar.", solar: "Sonnenstand", noon: "Mittag", nadir: "Nadir", az: "Azimut", alt: "Höhe", dn: "Tag- & Nachtlänge", mPhase: "MONDPHASE", mIllum: "BELEUCHTUNG", mDist: "ERDENTFERNUNG", mNextF: "NÄCHSTER VOLLMOND", mNextN: "NÄCHSTER NEUMOND", mAge: "MONDALTER", m_sub1: "Beleuchtete Fläche", m_sub2: "Geozentrische Distanz", m_sub3: "Synodischer Zyklus", m_light: "Morgenlicht", e_light: "Abendlicht", b_hour: "BLAUE STUNDE", g_hour: "GOLDENE STUNDE", m_twi: "MORGEN-DÄMMERUNG", e_twi: "ABEND-DÄMMERUNG", astro: "Astronomisch:", naut: "Nautisch:", civil: "Bürgerlich:" },
+            hi: { loc: 'hi-IN', search: "शहर खोजें...", add: "जोड़ें", local: "स्थानीय मौसम", h24: "24-घंटे का पूर्वानुमान", d7: "7-दिन का पूर्वानुमान", lunar: "चंद्र मेट्रिक्स", cond: "स्थिति और तापमान", feels: "महसूस होता है", sun: "सूर्योदय और सूर्यास्त", moon: "चंद्रोदय और चंद्रास्त", aqi: "वायु गुणवत्ता (AQI)", hum: "नमी", dew: "ओसांक", wind: "हवा", press: "हवा का दबाव", uv: "UV सूचकांक", aqi1: "अच्छा", aqi2: "मध्यम", aqi3: "संवेदनशील के लिए अस्वस्थ", aqi4: "अस्वस्थ", aqi5: "बहुत अस्वस्थ", aqi6: "खतरनाक", w0d: "धूप / साफ", w0n: "साफ रात", w1: "आंशिक रूप से बादल", w3: "बादल", w45: "कोहरा", w51: "बूंदाबांदी", w56: "ठंडी बूंदाबांदी", w61: "बारिश", w66: "ठंडी बारिश", w71: "बर्फबारी", w80: "बौछारें", w85: "बर्फ की बौछारें", w95: "आंधी", w96: "भारी तूफान", unk: "अज्ञात", load: "लोड हो रहा है...", err: "कनेक्शन विफल", err_txt: "सर्वर तक नहीं पहुंच सके।", solar: "सौर स्थिति", noon: "दोपहर", nadir: "नादिर", az: "दिगंश", alt: "ऊंचाई", dn: "दिन और रात की लंबाई", mPhase: "चंद्रमा का चरण", mIllum: "रोशनी", mDist: "पृथ्वी से दूरी", mNextF: "अगली पूर्णिमा", mNextN: "अगली अमावस्या", mAge: "चंद्रमा की आयु", m_sub1: "प्रकाशित सतह", m_sub2: "भू-केंद्रित दूरी", m_sub3: "चक्र प्रगति", m_light: "सुबह की रोशनी", e_light: "शाम की रोशनी", b_hour: "नीला समय", g_hour: "सुनहरा समय", m_twi: "सुबह की गोधूलि", e_twi: "शाम की गोधूलि", astro: "खगोलीय:", naut: "समुद्री:", civil: "नागरिक:" },
+            bn: { loc: 'bn-BD', search: "শহর খুঁজুন...", add: "যোগ করুন", local: "আবহাওয়া", h24: "২৪-ঘন্টার পূর্বাভাস", d7: "৭-দিনের পূর্বাভাস", lunar: "চন্দ্র মেট্রিক্স", cond: "অবস্থা এবং তাপমাত্রা", feels: "অনুভূত হয়", sun: "সূর্যোদয়/সূর্যাস্ত", moon: "চন্দ্রোদয়/চন্দ্রাস্ত", aqi: "বায়ু গুণমান", hum: "আর্দ্রতা", dew: "শিশিরাঙ্ক", wind: "বাতাস", press: "বায়ুর চাপ", uv: "UV সূচক", aqi1: "ভালো", aqi2: "মাঝারি", aqi3: "অস্বাস্থ্যকর (সংবেদনশীল)", aqi4: "অস্বাস্থ্যকর", aqi5: "খুব অস্বাস্থ্যকর", aqi6: "বিপজ্জনক", w0d: "রৌদ্রোজ্জ্বল", w0n: "পরিষ্কার রাত", w1: "আংশিক মেঘলা", w3: "মেঘাচ্ছন্ন", w45: "কুয়াশা", w51: "গুঁড়ি বৃষ্টি", w56: "হিমায়িত বৃষ্টি", w61: "বৃষ্টি", w66: "হিমায়িত বৃষ্টি", w71: "তুষারপাত", w80: "বর্ষণ", w85: "তুষার বর্ষণ", w95: "বজ্রঝড়", w96: "ভারী ঝড়", unk: "অজানা", load: "লোড হচ্ছে...", err: "সংযোগ ব্যর্থ", err_txt: "সার্ভারে পৌঁছানো যায়নি।", solar: "সৌর অবস্থান", noon: "দুপুর", nadir: "নাদির", az: "দিগংশ", alt: "উচ্চতা", dn: "দিন ও রাতের দৈর্ঘ্য", mPhase: "চন্দ্রের পর্ব", mIllum: "আলোকসজ্জা", mDist: "পৃথিবী থেকে দূরত্ব", mNextF: "পরবর্তী পূর্ণিমা", mNextN: "পরবর্তী অমাবস্যা", mAge: "চন্দ্রের বয়স", m_sub1: "আলোকিত পৃষ্ঠ", m_sub2: "ভূকেন্দ্রিক দূরত্ব", m_sub3: "চক্রের অগ্রগতি", m_light: "ভোরের আলো", e_light: "সন্ধ্যার আলো", b_hour: "নীল সময়", g_hour: "সোনালী সময়", m_twi: "ভোরের গোধূলি", e_twi: "সন্ধ্যার গোধূলি", astro: "জ্যোতির্বিদ্যা:", naut: "নটিক্যাল:", civil: "সিভিল:" },
+            ta: { loc: 'ta-IN', search: "உலகளாவிய நகரத்தை தேடுங்கள்...", add: "சேர்", local: "உள்ளூர் வானிலை", h24: "24-மணி நேர முன்னறிவிப்பு", d7: "7-நாள் முன்னறிவிப்பு", lunar: "சந்திர அளவீடுகள்", cond: "நிலைமை & வெப்பநிலை", feels: "உணரக்கூடிய வெப்பநிலை", sun: "சூரியோதயம் & அஸ்தமனம்", moon: "சந்திரோதயம் & அஸ்தமனம்", aqi: "காற்று தரம் (AQI)", hum: "ஈரப்பதம்", dew: "பனிப்புள்ளி", wind: "காற்றின் வேகம்", press: "காற்றழுத்தம்", uv: "UV குறியீடு", aqi1: "நன்று", aqi2: "மிதமான", aqi3: "உணர்திறன் உள்ளவர்களுக்கு ஆரோக்கியமற்றது", aqi4: "ஆரோக்கியமற்றது", aqi5: "மிகவும் ஆரோக்கியமற்றது", aqi6: "ஆபத்தானது", w0d: "வெயில் / தெளிவு", w0n: "தெளிவான இரவு", w1: "பகுதியளவு மேகமூட்டம்", w3: "மேகமூட்டம்", w45: "பனிமூட்டம்", w51: "தூறல்", w56: "உறையும் தூறல்", w61: "மழை", w66: "உறையும் மழை", w71: "பனி", w80: "மழைத்தூறல்", w85: "பனித்தூறல்", w95: "இடியுடன் கூடிய மழை", w96: "கடுமையான புயல்", unk: "தெரியவில்லை", load: "ஏற்றுகிறது...", err: "இணைப்பு தோல்வி", err_txt: "வானிலை சேவையகங்களை அடைய முடியவில்லை.", solar: "சூரிய நிலை", noon: "நண்பகல்", nadir: "கீழ்நிலை", az: "திசைக்கோணம்", alt: "உயரம்", dn: "பகல் & இரவு நீளம்", mPhase: "சந்திர கட்டம்", mIllum: "ஒளிர்வு", mDist: "பூமி தூரம்", mNextF: "அடுத்த பௌர்ணமி", mNextN: "அடுத்த அமாவாசை", mAge: "சந்திர வயது", m_sub1: "ஒளிரும் மேற்பரப்பு", m_sub2: "புவிமைய தூரம்", m_sub3: "சுழற்சி முன்னேற்றம்", m_light: "காலை வெளிச்சம்", e_light: "மாலை வெளிச்சம்", b_hour: "நீல நேரம்", g_hour: "பொன் நேரம்", m_twi: "காலை அந்தி", e_twi: "மாலை அந்தி", astro: "வானியல்:", naut: "கடல்சார்:", civil: "சிவில்:" },
+            kn: { loc: 'kn-IN', search: "ನಗರವನ್ನು ಹುಡುಕಿ...", add: "ಸೇರಿಸಿ", local: "ಸ್ಥಳೀಯ ಹವಾಮಾನ", h24: "24-ಗಂಟೆಗಳ ಮುನ್ಸೂಚನೆ", d7: "7-ದಿನಗಳ ಮುನ್ಸೂಚನೆ", lunar: "ಚಂದ್ರನ ಮಾಪನಗಳು", cond: "ಸ್ಥಿತಿ ಮತ್ತು ತಾಪಮಾನ", feels: "ಅನುಭವಿಸುವ ತಾಪಮಾನ", sun: "ಸೂರ್ಯೋದಯ ಮತ್ತು ಸೂರ್ಯಾಸ್ತ", moon: "ಚಂದ್ರೋದಯ ಮತ್ತು ಚಂದ್ರಾಸ್ತ", aqi: "ವಾಯು ಗುಣಮಟ್ಟ (AQI)", hum: "ಆರ್ದ್ರತೆ", dew: "ಇಬ್ಬನಿ ಬಿಂದು", wind: "ಗಾಳಿಯ ವೇಗ", press: "ವಾಯುಮಂಡಲದ ಒತ್ತಡ", uv: "UV ಸೂಚ್ಯಂಕ", aqi1: "ಉತ್ತಮ", aqi2: "ಮಧ್ಯಮ", aqi3: "ಸೂಕ್ಷ್ಮ ಜನರಿಗೆ ಅನಾರೋಗ್ಯಕರ", aqi4: "ಅನಾರೋಗ್ಯಕರ", aqi5: "ಅತ್ಯಂತ ಅನಾರೋಗ್ಯಕರ", aqi6: "ಅಪಾಯಕಾರಿ", w0d: "ಬಿಸಿಲು / ಸ್ಪಷ್ಟ", w0n: "ಸ್ಪಷ್ಟ ರಾತ್ರಿ", w1: "ಭಾಗಶಃ ಮೋಡ", w3: "ಮೋಡ ಕವಿದ", w45: "ಮಂಜು", w51: "ತುಂತುರು ಮಳೆ", w56: "ಹೆಪ್ಪುಗಟ್ಟುವ ತುಂತುರು", w61: "ಮಳೆ", w66: "ಹೆಪ್ಪುಗಟ್ಟುವ ಮಳೆ", w71: "ಹಿಮ", w80: "ಮಳೆಯ ಸುರಿಮಳೆ", w85: "ಹಿಮದ ಸುರಿಮಳೆ", w95: "ಗುಡುಗು ಸಹಿತ ಮಳೆ", w96: "ಭಾರೀ ಬಿರುಗಾಳಿ", unk: "ತಿಳಿದಿಲ್ಲ", load: "ಲೋಡ್ ಆಗುತ್ತಿದೆ...", err: "ಸಂಪರ್ಕ ವಿಫಲವಾಗಿದೆ", err_txt: "ಹವಾಮಾನ ಸರ್ವರ್‌ಗಳನ್ನು ತಲುಪಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.", solar: "ಸೌರ ಸ್ಥಾನ", noon: "ಮಧ್ಯಾಹ್ನ", nadir: "ಅಧೋಬಿಂದು", az: "ದಿಗಂಶ", alt: "ಎತ್ತರ", dn: "ಹಗಲು ಮತ್ತು ರಾತ್ರಿ ಉದ್ದ", mPhase: "ಚಂದ್ರನ ಹಂತ", mIllum: "ಬೆಳಕು", mDist: "ಭೂಮಿಯ ದೂರ", mNextF: "ಮುಂದಿನ ಹುಣ್ಣಿಮೆ", mNextN: "ಮುಂದಿನ ಅಮಾವಾಸ್ಯೆ", mAge: "ಚಂದ್ರನ ವಯಸ್ಸು", m_sub1: "ಬೆಳಗಿದ ಮೇಲ್ಮೈ", m_sub2: "ಭೂಕೇಂದ್ರಿತ ದೂರ", m_sub3: "ಚಕ್ರದ ಪ್ರಗತಿ", m_light: "ಬೆಳಗಿನ ಬೆಳಕು", e_light: "ಸಂಜೆಯ ಬೆಳಕು", b_hour: "ನೀಲಿ ಗಂಟೆ", g_hour: "ಸುವರ್ಣ ಗಂಟೆ", m_twi: "ಬೆಳಗಿನ ಮುಸ್ಸಂಜೆ", e_twi: "ಸಂಜೆಯ ಮುಸ್ಸಂಜೆ", astro: "ಖಗೋಳ:", naut: "ನಾವಿಕ:", civil: "ನಾಗರಿಕ:" },
+            te: { loc: 'te-IN', search: "నగరాన్ని శోధించండి...", add: "జోడించు", local: "స్థానిక వాతావరణం", h24: "24-గంటల సూచన", d7: "7-రోజుల సూచన", lunar: "చంద్ర కొలమానాలు", cond: "పరిస్థితి & ఉష్ణోగ్రత", feels: "అనిపించే ఉష్ణోగ్రత", sun: "సూర్యోదయం & సూర్యాస్తమయం", moon: "చంద్రోదయం & చంద్రాస్తమయం", aqi: "గాలి నాణ్యత (AQI)", hum: "తేమ", dew: "మంచు బిందువు", wind: "గాలి వేగం", press: "గాలి ఒత్తిడి", uv: "UV సూచిక", aqi1: "మంచిది", aqi2: "మితమైనది", aqi3: "సున్నితమైన వారికి అనారోగ్యకరం", aqi4: "అనారోగ్యకరం", aqi5: "చాలా అనారోగ్యకరం", aqi6: "ప్రమాదకరం", w0d: "ఎండ / స్పష్టమైనది", w0n: "స్పష్టమైన రాత్రి", w1: "పాక్షికంగా మేఘావృతం", w3: "మేఘావృతం", w45: "పొగమంచు", w51: "చినుకులు", w56: "గడ్డకట్టే చినుకులు", w61: "వర్షం", w66: "గడ్డకట్టే వర్షం", w71: "మంచు", w80: "జల్లులు", w85: "మంచు జల్లులు", w95: "ఉరుములతో కూడిన వర్షం", w96: "భారీ తుఫాను", unk: "తెలియదు", load: "లోడ్ అవుతోంది...", err: "కనెక్షన్ విఫలమైంది", err_txt: "వాతావరణ సర్వర్‌లను చేరుకోలేకపోయాము.", solar: "సౌర స్థానం", noon: "మధ్యాహ్నం", nadir: "నాదిర్", az: "అజిముత్", alt: "ఎత్తు", dn: "పగలు & రాత్రి నిడివి", mPhase: "చంద్రుని దశ", mIllum: "ప్రకాశం", mDist: "భూమి దూరం", mNextF: "తదుపరి పౌర్ణమి", mNextN: "తదుపరి అమావాస్య", mAge: "చంద్రుని వయస్సు", m_sub1: "ప్రకాశించే ఉపరితలం", m_sub2: "భూకేంద్రక దూరం", m_sub3: "చక్రం పురోగతి", m_light: "ఉదయం కాంతి", e_light: "సాయంత్రం కాంతి", b_hour: "బ్లూ అవర్", g_hour: "గోల్డెన్ అవర్", m_twi: "ఉదయం సంధ్య", e_twi: "సాయంత్రం సంధ్య", astro: "ఖగోళ:", naut: "నాటికల్:", civil: "సివిల్:" },
+            zh: { loc: 'zh-CN', search: "搜索城市...", add: "添加城市", local: "当地天气", h24: "24小时预报", d7: "7天预报", lunar: "月相数据", cond: "天气与温度", feels: "体感温度", sun: "日出 / 日落", moon: "月出 / 月落", aqi: "空气质量 (AQI)", hum: "湿度", dew: "露点", wind: "风速", press: "气压", uv: "紫外线指数", aqi1: "优", aqi2: "良", aqi3: "轻度污染", aqi4: "中度污染", aqi5: "重度污染", aqi6: "严重污染", w0d: "晴朗", w0n: "晴朗夜晚", w1: "多云", w3: "阴天", w45: "雾", w51: "毛毛雨", w56: "冻毛毛雨", w61: "雨", w66: "冻雨", w71: "雪", w80: "阵雨", w85: "阵雪", w95: "雷暴", w96: "强风暴", unk: "未知", load: "加载中...", err: "连接失败", err_txt: "无法连接到天气服务器，请检查网络。", solar: "太阳位置", noon: "正午", nadir: "天底", az: "方位角", alt: "高度角", dn: "昼夜时长", mPhase: "月相", mIllum: "照明度", mDist: "地月距离", mNextF: "下一个满月", mNextN: "下一个新月", mAge: "月龄", m_sub1: "发光表面比例", m_sub2: "地心距离", m_sub3: "朔望月进度", m_light: "晨光", e_light: "暮光", b_hour: "蓝调时刻", g_hour: "黄金时刻", m_twi: "清晨曙光", e_twi: "傍晚暮光", astro: "天文:", naut: "航海:", civil: "民用:" },
+            ja: { loc: 'ja-JP', search: "都市を検索...", add: "追加", local: "現地の天気", h24: "24時間予報", d7: "7日間予報", lunar: "月相データ", cond: "天候と温度", feels: "体感温度", sun: "日の出 / 日の入り", moon: "月の出 / 月の入り", aqi: "空気質 (AQI)", hum: "湿度", dew: "露点", wind: "風速", press: "気圧", uv: "UV指数", aqi1: "良好", aqi2: "普通", aqi3: "敏感な人には不健康", aqi4: "不健康", aqi5: "極めて不健康", aqi6: "危険", w0d: "晴れ", w0n: "快晴の夜", w1: "一部曇り", w3: "曇り", w45: "霧", w51: "霧雨", w56: "着氷性の霧雨", w61: "雨", w66: "着氷性の雨", w71: "雪", w80: "にわか雨", w85: "にわか雪", w95: "雷雨", w96: "激しい嵐", unk: "不明", load: "読み込み中...", err: "接続エラー", err_txt: "サーバーにアクセスできません。", solar: "太陽の位置", noon: "正午", nadir: "天底", az: "方位角", alt: "高度", dn: "昼夜の長さ", mPhase: "月相", mIllum: "照度", mDist: "地球からの距離", mNextF: "次の満月", mNextN: "次の新月", mAge: "月齢", m_sub1: "輝面比", m_sub2: "地心距離", m_sub3: "朔望月進行度", m_light: "朝の光", e_light: "夕方の光", b_hour: "ブルーアワー", g_hour: "ゴールデンアワー", m_twi: "朝の薄明", e_twi: "夕方の薄明", astro: "天文:", naut: "航海:", civil: "常用:" },
+            ko: { loc: 'ko-KR', search: "도시 검색...", add: "추가", local: "현재 날씨", h24: "24시간 예보", d7: "7일 예보", lunar: "달 데이터", cond: "상태 및 온도", feels: "체감 온도", sun: "일출 / 일몰", moon: "월출 / 월몰", aqi: "공기질 (AQI)", hum: "습도", dew: "이슬점", wind: "풍속", press: "기압", uv: "UV 지수", aqi1: "좋음", aqi2: "보통", aqi3: "민감군에 나쁨", aqi4: "나쁨", aqi5: "매우 나쁨", aqi6: "위험", w0d: "맑음", w0n: "맑은 밤", w1: "구름 조금", w3: "흐림", w45: "안개", w51: "이슬비", w56: "어는 이슬비", w61: "비", w66: "어는 비", w71: "눈", w80: "소나기", w85: "소낙눈", w95: "뇌우", w96: "강한 폭풍", unk: "알 수 없음", load: "로딩 중...", err: "연결 실패", err_txt: "서버에 연결할 수 없습니다.", solar: "태양 위치", noon: "정오", nadir: "천저", az: "방위각", alt: "고도", dn: "낮/밤 길이", mPhase: "달의 위상", mIllum: "조명", mDist: "지구 거리", mNextF: "다음 보름달", mNextN: "다음 초승달", mAge: "월령", m_sub1: "조명 비율", m_sub2: "지심 거리", m_sub3: "삭망월 진행", m_light: "아침 빛", e_light: "저녁 빛", b_hour: "블루 아워", g_hour: "골든 아워", m_twi: "아침 여명", e_twi: "저녁 여명", astro: "천문:", naut: "항해:", civil: "상용:" },
+            sw: { loc: 'sw-KE', search: "Tafuta mji...", add: "Ongeza", local: "Hali ya Hewa", h24: "Utabiri 24h", d7: "Utabiri Siku 7", lunar: "Metriki za Mwezi", cond: "Hali & Joto", feels: "Inahisi kama", sun: "Macheo & Machweo", moon: "Mwezi", aqi: "Ubora wa Hewa", hum: "Unyevu", dew: "Umande", wind: "Upepo", press: "Shinikizo", uv: "UV Index", aqi1: "Nzuri", aqi2: "Wastani", aqi3: "Sio nzuri", aqi4: "Mbaya", aqi5: "Mbaya Sana", aqi6: "Hatari", w0d: "Jua / Wazi", w0n: "Usiku Wazi", w1: "Mawingu Kiasi", w3: "Mawingu Mengi", w45: "Ukungu", w51: "Drizzle", w56: "Drizzle Inayoganda", w61: "Mvua", w66: "Mvua Inayoganda", w71: "Theluji", w80: "Mawimbi", w85: "Mawimbi Theluji", w95: "Ngurumo", w96: "Dhoruba Kali", unk: "Haijulikani", load: "Inapakia...", err: "Imeshindwa", err_txt: "Hatuwezi kufikia seva za hali ya hewa.", solar: "Nafasi ya Jua", noon: "Mchana", nadir: "Nadir", az: "Azimuth", alt: "Urefu", dn: "Urefu wa Mchana/Usiku", mPhase: "AWAMU MWEZI", mIllum: "MWANGA", mDist: "UMBALI DUNIA", mNextF: "MWEZI KAMILI", mNextN: "MWEZI MPYA", mAge: "UMRI MWEZI", m_sub1: "Sehemu Inayowaka", m_sub2: "Umbali", m_sub3: "Mzunguko", m_light: "Nuru ya Asubuhi", e_light: "Nuru ya Jioni", b_hour: "SAA YA BLUU", g_hour: "SAA YA DHAHABU", m_twi: "MAPAMBAZUKO", e_twi: "MACHWEO", astro: "Astronomical:", naut: "Nautical:", civil: "Civil:" }
         };
 
-        // Data and State
+        // ISO 3166-1 alpha-2 country codes, keyed by the country names used in cityData
+        // and by the full country names returned from the Open-Meteo geocoding API.
+        const COUNTRY_CODES = {
+            "Afghanistan": "AF", "Argentina": "AR", "Australia": "AU", "Austria": "AT",
+            "Bangladesh": "BD", "Belgium": "BE", "Brazil": "BR", "Canada": "CA",
+            "Chile": "CL", "China": "CN", "Colombia": "CO", "Cuba": "CU", "Czechia": "CZ",
+            "Czech Republic": "CZ", "DR Congo": "CD", "Democratic Republic of the Congo": "CD",
+            "Denmark": "DK", "Egypt": "EG", "Ethiopia": "ET", "Fiji": "FJ", "Finland": "FI",
+            "France": "FR", "Germany": "DE", "Ghana": "GH", "Greece": "GR",
+            "Hong Kong": "HK", "Iceland": "IS", "India": "IN", "Indonesia": "ID",
+            "Iran": "IR", "Iraq": "IQ", "Ireland": "IE", "Israel": "IL", "Italy": "IT",
+            "Japan": "JP", "Jordan": "JO", "Kenya": "KE", "Mexico": "MX", "Morocco": "MA",
+            "Myanmar": "MM", "Netherlands": "NL", "New Zealand": "NZ", "Nigeria": "NG",
+            "Norway": "NO", "Pakistan": "PK", "Peru": "PE", "Philippines": "PH",
+            "Poland": "PL", "Portugal": "PT", "Qatar": "QA", "Russia": "RU",
+            "Saudi Arabia": "SA", "Senegal": "SN", "Singapore": "SG", "South Africa": "ZA",
+            "South Korea": "KR", "Spain": "ES", "Sweden": "SE", "Taiwan": "TW",
+            "Thailand": "TH", "Turkey": "TR", "Ukraine": "UA", "United Arab Emirates": "AE",
+            "United Kingdom": "GB", "United States": "US", "United States of America": "US",
+            "Venezuela": "VE", "Vietnam": "VN", "Kuwait": "KW", "Bahrain": "BH",
+            "Oman": "OM", "Lebanon": "LB", "Syria": "SY", "Yemen": "YE", "Malaysia": "MY",
+            "Sri Lanka": "LK", "Nepal": "NP", "Cambodia": "KH", "Laos": "LA",
+            "Mongolia": "MN", "Kazakhstan": "KZ", "Uzbekistan": "UZ", "Zimbabwe": "ZW",
+            "Zambia": "ZM", "Tanzania": "TZ", "Uganda": "UG", "Algeria": "DZ",
+            "Tunisia": "TN", "Libya": "LY", "Sudan": "SD", "Angola": "AO",
+            "Mozambique": "MZ", "Botswana": "BW", "Namibia": "NA", "Switzerland": "CH",
+            "Luxembourg": "LU", "Croatia": "HR", "Serbia": "RS", "Slovakia": "SK",
+            "Slovenia": "SI", "Hungary": "HU", "Romania": "RO", "Bulgaria": "BG",
+            "Belarus": "BY", "Lithuania": "LT", "Latvia": "LV", "Estonia": "EE",
+            "Iceland ": "IS", "Malta": "MT", "Cyprus": "CY", "Georgia": "GE",
+            "Armenia": "AM", "Azerbaijan": "AZ", "Ecuador": "EC", "Bolivia": "BO",
+            "Paraguay": "PY", "Uruguay": "UY", "Guatemala": "GT", "Honduras": "HN",
+            "El Salvador": "SV", "Nicaragua": "NI", "Costa Rica": "CR", "Panama": "PA",
+            "Jamaica": "JM", "Dominican Republic": "DO", "Haiti": "HT", "Puerto Rico": "PR"
+        };
+
+        // Builds a "City Name (CC)" style label. Prefers an explicit ISO code on the
+        // location (set for cities added via the search/geocoding flow), falls back to
+        // looking up the full country name, and gracefully omits the code if unknown.
+        function getCityDisplayLabel(location) {
+            const shortName = (location.city || '').split(',')[0].trim();
+            const cc = location.cc || COUNTRY_CODES[location.country] || '';
+            return cc ? `${shortName} (${cc})` : shortName;
+        }
+
+        // Data and State (Exact 1.19 version to ensure search works)
         const cityData = [
             { city: "Anchorage", country: "United States", tz: "America/Anchorage", lat: 61.2181, lon: -149.9003 },
             { city: "Honolulu", country: "United States", tz: "Pacific/Honolulu", lat: 21.3069, lon: -157.8583 },
@@ -779,7 +900,7 @@
         let geoResults = {};
         const GEO_MIN_CHARS = 2;
         let draggedCityIndex = null;
-        let currentLang = localStorage.getItem('dashboardLangV19') || 'en';
+        let currentLang = localStorage.getItem('dashboardLangV20') || 'en';
 
         // Translation helper
         function t(key) {
@@ -794,7 +915,7 @@
 
         document.getElementById('lang-selector').addEventListener('change', (e) => {
             currentLang = e.target.value;
-            localStorage.setItem('dashboardLangV19', currentLang);
+            localStorage.setItem('dashboardLangV20', currentLang);
             updateUILanguage();
         });
 
@@ -827,7 +948,7 @@
                 data.results.forEach(r => {
                     const label = r.admin1 ? `${r.name}, ${r.admin1}, ${r.country}` : `${r.name}, ${r.country}`;
                     geoResults[label.toLowerCase()] = {
-                        city: label, country: r.country, tz: r.timezone, lat: r.latitude, lon: r.longitude
+                        city: label, country: r.country, cc: r.country_code || '', tz: r.timezone, lat: r.latitude, lon: r.longitude
                     };
                 });
 
@@ -870,6 +991,13 @@
             return { text: t('aqi6'), color: "#a855f7" };
         }
 
+        function getVisibilityDescription(meters) {
+            if (meters === null || meters === undefined) return t('vis_na');
+            if (meters >= 10000) return t('vis1');
+            if (meters >= 1000) return t('vis2');
+            return t('vis3');
+        }
+
         function init() {
             document.getElementById('lang-selector').value = currentLang;
             
@@ -880,7 +1008,7 @@
                 dataList.appendChild(option);
             });
 
-            const saved = localStorage.getItem('dashboardCitiesV18') || localStorage.getItem('dashboardCitiesV17') || localStorage.getItem('dashboardCitiesV16') || localStorage.getItem('dashboardCitiesV15B');
+            const saved = localStorage.getItem('dashboardCitiesV21') || localStorage.getItem('dashboardCitiesV20') || localStorage.getItem('dashboardCitiesV19') || localStorage.getItem('dashboardCitiesV18');
             if (saved) {
                 myCities = JSON.parse(saved);
                 activeCityName = null; 
@@ -890,7 +1018,7 @@
             setInterval(updateLiveClock, 1000);
         }
 
-        function saveToLocal() { localStorage.setItem('dashboardCitiesV18', JSON.stringify(myCities)); }
+        function saveToLocal() { localStorage.setItem('dashboardCitiesV21', JSON.stringify(myCities)); }
 
         function addCity() {
             const input = document.getElementById('city-search');
@@ -1019,7 +1147,7 @@
                 btn.innerHTML = `
                     <button class="tab-close">&times;</button>
                     <div class="tab-content-wrapper">
-                        <div class="tab-city-name">${escapeHTML(location.city)}</div>
+                        <div class="tab-city-name">${escapeHTML(getCityDisplayLabel(location))}</div>
                         <div class="tab-datetime">
                             <span id="tab-date-${safeId}">----/--/--</span>
                             <span id="tab-time-${safeId}" class="time-highlight">--:--:--</span>
@@ -1068,8 +1196,8 @@
             }
 
             const encTz = encodeURIComponent(tz);
-            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,dew_point_2m,surface_pressure,wind_speed_10m,is_day,weather_code&hourly=temperature_2m,weather_code,is_day&daily=sunrise,sunset,uv_index_max,temperature_2m_max,temperature_2m_min,weather_code&timezone=${encTz}&wind_speed_unit=mph`;
-            const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi&timezone=${encTz}`;
+            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,dew_point_2m,surface_pressure,wind_speed_10m,visibility,uv_index,is_day,weather_code&hourly=temperature_2m,weather_code,is_day&daily=sunrise,sunset,uv_index_max,temperature_2m_max,temperature_2m_min,weather_code&timezone=${encTz}&wind_speed_unit=mph`;
+            const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi,carbon_dioxide,nitrogen_dioxide,dust&timezone=${encTz}`;
             
             try {
                 const [weatherRes, aqiRes] = await Promise.all([fetch(weatherUrl), fetch(aqiUrl)]);
@@ -1263,6 +1391,17 @@
                     aqiObj = getAqiDescription(aqiVal);
                 }
 
+                // --- ADDITIONAL POLLUTANTS (global coverage, unlike the Europe-only pollen dataset) ---
+                const co2Val = aqi?.carbon_dioxide ?? null;
+                const no2Val = aqi?.nitrogen_dioxide ?? null;
+                const dustVal = aqi?.dust ?? null;
+
+                // --- VISIBILITY ---
+                const visMeters = cur.visibility ?? null;
+                const visKm = visMeters !== null ? (visMeters / 1000).toFixed(1) : null;
+                const visMi = visMeters !== null ? (visMeters / 1609.34).toFixed(1) : null;
+                const visDesc = getVisibilityDescription(visMeters);
+
                 const forecasts = generateForecastHtml(data);
                 const currentCondition = getWeatherDescription(cur.weather_code ?? 0, isDay);
 
@@ -1283,6 +1422,33 @@
                     if (!d || isNaN(d.getTime())) return "--:--";
                     return d.toLocaleTimeString(locale, { timeZone: location.tz, hour: '2-digit', minute: '2-digit', hour12: false });
                 };
+
+                // --- DUAL UNITS CALCULATION ---
+                let windMph = cur.wind_speed_10m ?? 0;
+                let windKmh = Math.round(windMph * 1.60934);
+                
+                let pressureHpa = cur.surface_pressure ?? 0;
+                let pressureInhg = (pressureHpa * 0.02953).toFixed(2);
+                
+                let moonDistKm = Math.round(moonPos.distance);
+                let moonDistMi = Math.round(moonDistKm * 0.621371);
+
+                // --- UV INDEX TOOLTIP ---
+                // --- UV INDEX ---
+                // uv_index_max is the day's forecasted PEAK (occurs near solar noon) and stays
+                // the same number all day/night by definition. current.uv_index is the
+                // real-time value, which correctly falls to 0 after dusk / before dawn.
+                let uvMaxVal = day?.uv_index_max?.[0] ?? null;
+                let uvNowVal = cur.uv_index ?? null;
+                let uvSummary = "Data unavailable";
+                const uvForSummary = uvNowVal !== null ? uvNowVal : uvMaxVal;
+                if (uvForSummary !== null) {
+                    if (uvForSummary < 3) uvSummary = "Low: Minimal danger from the sun's UV rays for the average person.";
+                    else if (uvForSummary < 6) uvSummary = "Moderate: Moderate risk of harm from unprotected sun exposure.";
+                    else if (uvForSummary < 8) uvSummary = "High: High risk of harm from unprotected sun exposure. Protection needed.";
+                    else if (uvForSummary < 11) uvSummary = "Very High: Very high risk of harm from unprotected sun exposure. Take extra precautions.";
+                    else uvSummary = "Extreme: Extreme risk of harm from unprotected sun exposure. Take all precautions.";
+                }
 
                 section.innerHTML = `
                     <div class="view-toggle">
@@ -1335,28 +1501,40 @@
                             <span class="metric-value" style="margin-top: 10px; color: #cbd5e1; font-size: var(--font-lg);">🌙 ${nightLengthStr}</span>
                         </div>
                         <div class="bento-card">
-                            <span class="metric-label">${t('aqi')}</span>
-                            <span class="metric-value" style="color: ${aqiObj.color};">${aqiVal}</span>
-                            <span class="metric-sub">${aqiObj.text}</span>
-                        </div>
-                        <div class="bento-card">
                             <span class="metric-label">${t('hum')}</span>
                             <span class="metric-value">${cur.relative_humidity_2m ?? 0}%</span>
                             <span class="metric-sub">${t('dew')}: ${Math.round(cur.dew_point_2m ?? 0)}°C / ${Math.round(cToF(cur.dew_point_2m ?? 0))}°F</span>
                         </div>
                         <div class="bento-card">
                             <span class="metric-label">${t('wind')}</span>
-                            <span class="metric-value">${cur.wind_speed_10m ?? 0}</span>
-                            <span class="metric-sub">mph</span>
+                            <span class="metric-value">${windMph} mph</span>
+                            <span class="metric-sub">${windKmh} km/h</span>
                         </div>
                         <div class="bento-card">
                             <span class="metric-label">${t('press')}</span>
-                            <span class="metric-value">${cur.surface_pressure ?? 0}</span>
-                            <span class="metric-sub">hPa</span>
+                            <span class="metric-value">${pressureHpa} hPa</span>
+                            <span class="metric-sub">${pressureInhg} inHg</span>
+                        </div>
+                        <div class="bento-card card-uv" title="${uvSummary}">
+                            <span class="metric-label">${t('uv')} ℹ️</span>
+                            <span class="metric-value">${uvNowVal !== null ? uvNowVal.toFixed(1) : '--'}</span>
+                            <span class="metric-sub">${t('uv_max')}: ${uvMaxVal !== null ? uvMaxVal.toFixed(1) : '--'}</span>
                         </div>
                         <div class="bento-card">
-                            <span class="metric-label">${t('uv')}</span>
-                            <span class="metric-value">${day?.uv_index_max?.[0] || "--"}</span>
+                            <span class="metric-label">${t('aqi')}</span>
+                            <span class="metric-value" style="color: ${aqiObj.color};">${aqiVal}</span>
+                            <span class="metric-sub">${aqiObj.text}</span>
+                        </div>
+                        <div class="bento-card">
+                            <span class="metric-label">${t('pollutants')}</span>
+                            <span class="metric-value" style="font-size: var(--font-md);">CO₂: ${co2Val !== null ? Math.round(co2Val) : '--'} ppm</span>
+                            <span class="metric-value" style="font-size: var(--font-md); margin-top: 6px;">NO₂: ${no2Val !== null ? Math.round(no2Val) : '--'} µg/m³</span>
+                            <span class="metric-value" style="font-size: var(--font-md); margin-top: 6px;">${t('dust')}: ${dustVal !== null ? Math.round(dustVal) : '--'} µg/m³</span>
+                        </div>
+                        <div class="bento-card">
+                            <span class="metric-label">${t('vis')}</span>
+                            <span class="metric-value">${visKm !== null ? `${visKm} km` : '--'}</span>
+                            <span class="metric-sub">${visMi !== null ? `${visMi} mi &bull; ${visDesc}` : t('vis_na')}</span>
                         </div>
                     </div>
 
@@ -1381,8 +1559,8 @@
                             </div>
                             <div class="bento-card">
                                 <span class="metric-label">${t('mDist')}</span>
-                                <div class="metric-value">${Math.round(moonPos.distance).toLocaleString(locale)} km</div>
-                                <span class="metric-sub">${t('m_sub2')}</span>
+                                <div class="metric-value">${moonDistKm.toLocaleString(locale)} km</div>
+                                <span class="metric-sub">${moonDistMi.toLocaleString(locale)} mi</span>
                             </div>
                             <div class="bento-card">
                                 <span class="metric-label">${t('mNextF')}</span>
