@@ -1,0 +1,557 @@
+<!--
+    Dashboard Version: Compact Panels with Dual Units (1-Column List)
+    Features: Search, Add/Remove, Drag & Drop Rearrange, Live Clock, Open-Meteo Integration
+    Metrics: Feels Like  AQI, Humidity, UV Index,  Wind Speed.
+    Version: 1.6
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Weather Widget</title>
+    
+    <style>
+        :root {
+            --bg-body: #0f172a;
+            --panel-bg: linear-gradient(135deg, #2b3353 0%, #3a4263 100%);
+            --text-main: #ffffff;
+            --text-muted: #cbd5e1;
+            --text-dim: #94a3b8;
+            --font-sm: 0.8rem;
+            --font-md: 1rem; 
+            --font-lg: 1.8rem;
+            --danger: #f87171;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--bg-body); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 1.5rem 1rem; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh;
+        }
+
+        .main-container { 
+            width: 100%; 
+            max-width: 600px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 1rem; 
+        }
+
+        /* --- SEARCH CONTROLS --- */
+        .search-container { 
+            display: flex; 
+            gap: 8px; 
+            width: 100%; 
+        }
+
+        input { 
+            flex-grow: 1; 
+            padding: 0.6rem 1rem; 
+            border-radius: 8px; 
+            border: 1px solid #334155; 
+            background-color: #1e293b; 
+            color: var(--text-main); 
+            font-size: 0.95rem; 
+            outline: none; 
+        }
+
+        input:focus { border-color: #38bdf8; }
+
+        button.add-btn { 
+            padding: 0.6rem 1rem; 
+            background-color: #38bdf8; 
+            color: #0f172a; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            font-size: 0.95rem; 
+            cursor: pointer; 
+            transition: opacity 0.2s; 
+        }
+
+        button.add-btn:hover { opacity: 0.8; }
+
+        /* --- PANELS CONTAINER --- */
+        #panels-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        /* --- CITY PANEL --- */
+        .city-panel {
+            background: var(--panel-bg);
+            border-radius: 10px;
+            padding: 14px 18px; /* Tighter padding */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            cursor: grab;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+            user-select: none;
+            gap: 16px;
+        }
+
+        .city-panel.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .city-panel.drag-over {
+            border: 2px dashed #38bdf8;
+            transform: scale(1.01);
+        }
+
+        /* Delete Button */
+        .tab-close { 
+            position: absolute; 
+            top: 6px; 
+            right: 6px; 
+            background: transparent; 
+            border: none; 
+            color: var(--text-dim); 
+            font-size: 1.2rem; 
+            cursor: pointer; 
+            border-radius: 50%; 
+            width: 24px; height: 24px;
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.2s; 
+        }
+        .tab-close:hover { color: #fff; background: var(--danger); }
+
+        /* Left Side: Identity & Temp */
+        .panel-left {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 160px;
+        }
+
+        .city-name {
+            font-size: var(--font-md);
+            font-weight: 600; 
+            margin: 0;
+            letter-spacing: 0.3px;
+        }
+
+        .date-time {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0 0 6px 0;
+            font-weight: 400;
+        }
+
+        .weather-main {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .weather-icon {
+            font-size: 2.2rem;
+            line-height: 1;
+        }
+        
+        .temp-block {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .temperature {
+            font-size: var(--font-lg);
+            font-weight: 500;
+            margin: 0;
+            line-height: 1.1;
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+        
+        .temp-secondary {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            font-weight: 400;
+        }
+
+        .feels-like {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Right Side: Metrics List */
+        .panel-right {
+            display: flex;
+            flex-direction: column;
+            gap: 6px; /* Tighter gap for compactness */
+            min-width: 180px;
+            flex-grow: 1;
+            max-width: 240px;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: var(--font-sm);
+        }
+
+        .metric-label-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-muted);
+        }
+
+        .metric-icon {
+            font-size: 0.95rem;
+            opacity: 0.8;
+            width: 16px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: var(--text-main);
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .unit-secondary {
+            font-size: 0.8em;
+            color: var(--text-dim);
+            font-weight: 400;
+            margin-left: 2px;
+        }
+
+        .loading-text {
+            font-size: var(--font-sm);
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Responsive Design / Mobile Friendly */
+        @media (max-width: 500px) {
+            .city-panel {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 12px 16px;
+                gap: 10px;
+            }
+            
+            .panel-right {
+                padding-top: 10px;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                width: 100%;
+                max-width: unset;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="search-container">
+            <input list="city-list" id="city-search" placeholder="Search any city worldwide..." autocomplete="off">
+            <datalist id="city-list"></datalist>
+            <button class="add-btn" id="add-city-btn">Add</button>
+        </div>
+        
+        <div id="panels-container"></div>
+    </div>
+
+    <script>
+        // Data and State 
+        let myCities = [];
+        let weatherCache = {}; 
+        let geoDebounceTimer;
+        let geoResults = {};
+        let draggedCityIndex = null;
+        const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+
+        const COUNTRY_CODES = {
+            "United States": "US", "United States of America": "US", "Canada": "CA", "United Kingdom": "GB", 
+            "Australia": "AU", "India": "IN", "Japan": "JP", "Germany": "DE", "France": "FR", "Brazil": "BR", "Mexico": "MX"
+        };
+
+        function getCityDisplayLabel(location) {
+            const shortName = (location.city || '').split(',')[0].trim();
+            const cc = location.cc || COUNTRY_CODES[location.country] || '';
+            return cc ? `${shortName} (${cc})` : shortName;
+        }
+
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return str;
+            return str.replace(/[&<>'"]/g, function(match) {
+                const escape = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+                return escape[match];
+            });
+        }
+
+        function kmhToMs(kmh) { return (kmh / 3.6).toFixed(1); }
+        function kmhToMph(kmh) { return (kmh / 1.60934).toFixed(1); }
+
+        // --- GEOCODING & SEARCH ---
+        document.getElementById('city-search').addEventListener('input', e => {
+            const q = e.target.value.trim();
+            clearTimeout(geoDebounceTimer);
+            if (q.length < 2) return;
+            geoDebounceTimer = setTimeout(() => fetchGeocodeResults(q), 350);
+        });
+
+        async function fetchGeocodeResults(query) {
+            try {
+                const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json`;
+                const response = await fetch(url);
+                const data = await response.json();
+                if (!data.results) return;
+
+                const dataList = document.getElementById('city-list');
+                geoResults = {}; 
+                dataList.innerHTML = '';
+
+                data.results.forEach(r => {
+                    const label = r.admin1 ? `${r.name}, ${r.admin1}, ${r.country}` : `${r.name}, ${r.country}`;
+                    geoResults[label.toLowerCase()] = {
+                        city: label, country: r.country, cc: r.country_code || '', tz: r.timezone, lat: r.latitude, lon: r.longitude
+                    };
+                    const option = document.createElement('option');
+                    option.value = label; 
+                    dataList.appendChild(option);
+                });
+            } catch (e) { console.error("Geocoding Error:", e); }
+        }
+
+        function addCity() {
+            const input = document.getElementById('city-search');
+            const query = input.value.trim().toLowerCase();
+            if (!query || !geoResults[query]) return alert("Please select a city from the dropdown list.");
+            
+            const location = geoResults[query];
+            if (myCities.some(c => c.city === location.city)) {
+                input.value = ''; return; 
+            }
+
+            myCities.push(location);
+            input.value = ''; 
+            saveToLocal(); 
+            renderPanels();
+        }
+
+        function removeCity(cityName, event) {
+            event.stopPropagation(); 
+            myCities = myCities.filter(c => c.city !== cityName);
+            saveToLocal(); 
+            renderPanels();
+        }
+
+        function saveToLocal() { 
+            localStorage.setItem('dashboardCities_CompactV6', JSON.stringify(myCities)); 
+        }
+
+        // --- WEATHER API ---
+        async function fetchWeather(lat, lon, tz, cityName) {
+            const cached = weatherCache[cityName];
+            if (cached && (Date.now() - cached.timestamp < CACHE_DURATION)) {
+                return cached.data;
+            }
+
+            const encTz = encodeURIComponent(tz);
+            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,wind_speed_10m,relative_humidity_2m,uv_index,is_day,weather_code&timezone=${encTz}`;
+            const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi&timezone=${encTz}`;
+            
+            try {
+                const [weatherRes, aqiRes] = await Promise.all([fetch(weatherUrl), fetch(aqiUrl)]);
+                const weatherData = await weatherRes.json();
+                let aqiData = null;
+                if (aqiRes.ok) aqiData = await aqiRes.json();
+
+                const data = { ...weatherData, airQuality: aqiData };
+                weatherCache[cityName] = { data: data, timestamp: Date.now() };
+                return data;
+            } catch (error) { 
+                console.error(error);
+                return null; 
+            }
+        }
+
+        function getWeatherIcon(code, isDay = true) {
+            if (code === 0) return isDay ? "☀️" : "🌙";
+            if (code === 1 || code === 2) return isDay ? "⛅" : "☁️";
+            if (code === 3) return "☁️";
+            if (code === 45 || code === 48) return "🌫️";
+            if (code >= 51 && code <= 67) return "🌧️";
+            if (code >= 71 && code <= 77) return "❄️";
+            if (code >= 80 && code <= 82) return "🌦️";
+            if (code >= 85 && code <= 86) return "🌨️";
+            if (code >= 95) return "⛈️";
+            return "🌡️";
+        }
+
+        // --- RENDERING ---
+        function renderPanels() {
+            const container = document.getElementById('panels-container');
+            container.innerHTML = '';
+            
+            myCities.forEach((location, index) => {
+                const safeId = location.city.replace(/[^a-zA-Z0-9]/g, '-');
+                const panel = document.createElement('div');
+                panel.className = 'city-panel';
+                panel.draggable = true;
+
+                // Drag & Drop
+                panel.addEventListener('dragstart', (e) => {
+                    draggedCityIndex = index;
+                    e.dataTransfer.effectAllowed = 'move';
+                    setTimeout(() => panel.classList.add('dragging'), 0);
+                });
+                panel.addEventListener('dragover', (e) => {
+                    e.preventDefault(); 
+                    panel.classList.add('drag-over');
+                });
+                panel.addEventListener('dragleave', () => panel.classList.remove('drag-over'));
+                panel.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    panel.classList.remove('drag-over');
+                    const droppedCityIndex = index;
+                    if (draggedCityIndex === null || draggedCityIndex === droppedCityIndex) return;
+
+                    const draggedItem = myCities.splice(draggedCityIndex, 1)[0];
+                    myCities.splice(droppedCityIndex, 0, draggedItem);
+                    saveToLocal();
+                    renderPanels(); 
+                });
+                panel.addEventListener('dragend', () => {
+                    panel.classList.remove('dragging');
+                    document.querySelectorAll('.city-panel').forEach(p => p.classList.remove('drag-over'));
+                    draggedCityIndex = null;
+                });
+
+                panel.innerHTML = `
+                    <button class="tab-close" onclick="removeCity('${escapeHTML(location.city)}', event)">&times;</button>
+                    <div class="panel-left">
+                        <h2 class="city-name">${escapeHTML(getCityDisplayLabel(location))}</h2>
+                        <div class="date-time" id="date-${safeId}">Loading time...</div>
+                        <div class="weather-main" id="weather-main-${safeId}">
+                            <span class="loading-text">Fetching weather...</span>
+                        </div>
+                    </div>
+                    <div class="panel-right" id="metrics-${safeId}">
+                        </div>
+                `;
+                container.appendChild(panel);
+
+                populatePanelData(location, safeId);
+            });
+
+            updateLiveClock(); 
+        }
+
+        async function populatePanelData(location, safeId) {
+            const data = await fetchWeather(location.lat, location.lon, location.tz, location.city);
+            if (!data || !data.current) return;
+
+            const cur = data.current;
+            const aqiData = data.airQuality?.current;
+            const isDay = cur.is_day === 1;
+
+            const icon = getWeatherIcon(cur.weather_code, isDay);
+            const tempC = Math.round(cur.temperature_2m);
+            const tempF = Math.round(cur.temperature_2m * 1.8 + 32);
+            
+            const feelsC = Math.round(cur.apparent_temperature);
+            const feelsF = Math.round(cur.apparent_temperature * 1.8 + 32);
+            
+            // Inject Icon, Main Temp, and Feels Like
+            document.getElementById(`weather-main-${safeId}`).innerHTML = `
+                <span class="weather-icon">${icon}</span>
+                <div class="temp-block">
+                    <span class="temperature">
+                        ${tempC}°C <span class="temp-secondary">(${tempF}°F)</span>
+                    </span>
+                    <span class="feels-like">Feels like: ${feelsC}°C (${feelsF}°F)</span>
+                </div>
+            `;
+            
+            const hum = cur.relative_humidity_2m;
+            
+            const windKmh = cur.wind_speed_10m;
+            const windMs = kmhToMs(windKmh);
+            const windMph = kmhToMph(windKmh);
+
+            const aqi = aqiData && aqiData.us_aqi !== null ? aqiData.us_aqi : '--';
+            const uv = cur.uv_index !== null ? cur.uv_index.toFixed(1) : '--';
+
+            // Metrics List Output - Humidity, Wind, AQI, UV Index
+            document.getElementById(`metrics-${safeId}`).innerHTML = `
+                <div class="metric-row">
+                    <div class="metric-label-group">
+                        <span class="metric-icon">💧</span> <span>Humidity</span>
+                    </div>
+                    <span class="metric-value">${hum}%</span>
+                </div>
+                <div class="metric-row">
+                    <div class="metric-label-group">
+                        <span class="metric-icon">💨</span> <span>Wind</span>
+                    </div>
+                    <span class="metric-value">${windMs} m/s <span class="unit-secondary">(${windMph} mph)</span></span>
+                </div>
+                <div class="metric-row">
+                    <div class="metric-label-group">
+                        <span class="metric-icon">🍃</span> <span>AQI</span>
+                    </div>
+                    <span class="metric-value">${aqi}</span>
+                </div>
+                <div class="metric-row">
+                    <div class="metric-label-group">
+                        <span class="metric-icon">☀️</span> <span>UV Index</span>
+                    </div>
+                    <span class="metric-value">${uv}</span>
+                </div>
+            `;
+        }
+
+        function updateLiveClock() {
+            const now = new Date();
+            myCities.forEach(location => {
+                const safeId = location.city.replace(/[^a-zA-Z0-9]/g, '-');
+                const dateEl = document.getElementById(`date-${safeId}`);
+                if (dateEl) {
+                    const dateStr = now.toLocaleDateString('en-US', {
+                        timeZone: location.tz, weekday: 'long', month: '2-digit', day: '2-digit'
+                    });
+                    const timeStr = now.toLocaleTimeString('en-US', {
+                        timeZone: location.tz, hour12: false, hour: '2-digit', minute: '2-digit'
+                    });
+                    dateEl.textContent = `${dateStr} • ${timeStr}`;
+                }
+            });
+        }
+
+        function init() {
+            const saved = localStorage.getItem('dashboardCities_CompactV6');
+            if (saved) myCities = JSON.parse(saved);
+            
+            renderPanels();
+            setInterval(updateLiveClock, 1000);
+            
+            document.getElementById('add-city-btn').addEventListener('click', addCity);
+            document.getElementById('city-search').addEventListener('keypress', e => { 
+                if (e.key === 'Enter') addCity(); 
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
