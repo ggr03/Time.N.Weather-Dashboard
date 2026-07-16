@@ -10,14 +10,15 @@ A global time and weather dashboard for tracking live local times, current condi
 
 1. [Managing Your Cities](#1-managing-your-cities)
 2. [The Four Weather Views](#2-the-four-weather-views)
-3. [Reading Local Weather Information](#3-reading-local-weather-information)
-4. [24-Hour & 7-Day Forecasts](#4-24-hour--7-day-forecasts)
-5. [Reading Lunar Metrics & Lighting Stats](#5-reading-lunar-metrics--lighting-stats)
+3. [Reading Current Conditions](#3-reading-current-conditions)
+4. [Hourly & Daily Forecasts](#4-hourly--daily-forecasts)
+5. [Reading Astro & Lighting Stats](#5-reading-astro--lighting-stats)
 6. [Language Support](#6-language-support)
 7. [Mobile & Cross-Browser Support](#7-mobile--cross-browser-support)
 8. [Data Persistence](#8-data-persistence)
-9. [Troubleshooting](#9-troubleshooting)
-10. [Credits & License](#10-credits--license)
+9. [Security & Integrity](#9-security--integrity)
+10. [Troubleshooting](#10-troubleshooting)
+11. [Credits & License](#11-credits--license)
 
 ---
 
@@ -60,18 +61,22 @@ Once a city is selected, four view toggles sit at the top of the main panel:
 
 | View | What it shows |
 |---|---|
-| **Local Weather** | Current conditions bento-grid — temperature, sun/moon times, solar position, AQI, humidity, wind, pressure, UV, and pollutants |
-| **24-Hour Forecast** | Hour-by-hour conditions and temperature for the next 24 hours, starting from the current hour |
-| **7-Day Forecast** | Daily high/low temperatures and conditions for the coming week |
-| **Lunar Metrics** | Moon phase, illumination, distance, upcoming full/new moon dates, and photography-focused lighting data (blue hour, golden hour, twilights) |
+| **Current Conditions** | Current conditions bento-grid — temperature, sun/moon times, solar position, AQI, humidity, wind, pressure, UV, and pollutants |
+| **Hourly** | Hour-by-hour conditions and temperature for the next 24 hours, starting from the current hour |
+| **Daily** | Daily high/low temperatures and conditions for the coming week |
+| **Astro** | Moon phase, illumination, distance, upcoming full/new moon dates, and photography-focused lighting data (blue hour, golden hour, twilights) |
+
+> **Naming note:** This view was previously labeled "Lunar Metrics." It's now called **Astro**, since the blue hour/golden hour/twilight data in this view is about the sun's position, not the moon — "Astro" better reflects everything the tab actually covers.
+
+> **Naming note:** The first view was previously labeled "Local Weather." It's now called **Current Conditions**, which more precisely describes what the tab shows (the current moment's readings, as opposed to the Hourly/Daily forecasts).
 
 Every temperature throughout the dashboard is shown in **both Celsius and Fahrenheit** side by side, so you never need to switch units.
 
 ---
 
-## 3. Reading Local Weather Information
+## 3. Reading Current Conditions
 
-The **Local Weather** view presents a "bento-box" grid of current meteorological conditions:
+The **Current Conditions** view presents a "bento-box" grid of current meteorological conditions:
 
 - **Condition & Temp:** Current weather icon (e.g., ⛅ Partly Cloudy), air temperature in °C/°F, and "Feels like" (apparent) temperature factoring in humidity and wind chill.
 - **Sunrise & Sunset:** Local times the sun crests the horizon (🌅) and disappears (🌇).
@@ -91,18 +96,18 @@ The **Local Weather** view presents a "bento-box" grid of current meteorological
 
 ---
 
-## 4. 24-Hour & 7-Day Forecasts
+## 4. Hourly & Daily Forecasts
 
-- **24-Hour Forecast:** Lists conditions hour by hour starting from right now, with icon, short description, and temperature (°C/°F) for each hour. Scrolls independently of the rest of the page.
-- **7-Day Forecast:** One row per day, showing the day/date, a summary icon and condition, and the day's high (↑) and low (↓) temperatures in °C and °F.
+- **Hourly:** Lists conditions hour by hour starting from right now, with icon, short description, and temperature (°C/°F) for each hour. Scrolls independently of the rest of the page.
+- **Daily:** One row per day, showing the day/date, a summary icon and condition, and the day's high (↑) and low (↓) temperatures in °C and °F.
 
-Both lists pull from the same live forecast data as the Local Weather view, so they always stay in sync with the selected city.
+Both lists pull from the same live forecast data as the Current Conditions view, so they always stay in sync with the selected city.
 
 ---
 
-## 5. Reading Lunar Metrics & Lighting Stats
+## 5. Reading Astro & Lighting Stats
 
-Selecting **Lunar Metrics** swaps in advanced astronomical data calculated from the exact latitude and longitude of your selected city.
+Selecting **Astro** swaps in advanced astronomical data calculated from the exact latitude and longitude of your selected city.
 
 ### The Lunar Bento Cards
 
@@ -165,7 +170,19 @@ Your saved cities, their order, and your selected language are all stored in you
 
 ---
 
-## 9. Troubleshooting
+## 9. Security & Integrity
+
+The dashboard is a single static HTML file with no backend server, but it still follows the same hardening practices you'd expect from a hosted app:
+
+- **Content Security Policy (CSP):** The page restricts which scripts, styles, and network destinations it's allowed to use. Its own logic is pinned by an exact cryptographic hash — if any script content in the file changes, the browser refuses to run it until the CSP is updated to match, which prevents unexpected or injected code from executing.
+- **Subresource Integrity (SRI):** The one external library the dashboard loads (SunCalc, for sun/moon calculations) is verified against a cryptographic hash before the browser will run it. If the file served from the CDN doesn't exactly match, it's blocked rather than silently executed.
+- **Locked-down network access:** The dashboard can only reach the three Open-Meteo endpoints it actually needs (geocoding, weather, and air quality) — no other network destination is reachable from the page's own code.
+
+None of this changes how you use the dashboard day to day — it's protection that runs invisibly in the background.
+
+---
+
+## 10. Troubleshooting
 
 **"City not found" alert when adding a city**
 Make sure you've selected an entry from the dropdown list (rather than typing a name and pressing Enter immediately) — the dashboard needs the exact geocoded match to fetch weather data for that location.
@@ -178,7 +195,7 @@ This is a known Safari limitation with the native suggestion list for search inp
 
 ---
 
-## 10. Credits & License
+## 11. Credits & License
 
 **Created by:** GGR, Maryland, USA
 **About:** Global Time & Weather dashboard for the Vivaldi Browser Side Panel, built for the Vivaldi community.
