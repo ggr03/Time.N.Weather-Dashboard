@@ -1,7 +1,8 @@
 <!--
     Created by:     GGR, Maryland, USA
-    Date:           2026-07-19
-    Version:        1.32.1 (Fixed units being displayed and added mobile browser display)
+    Date:           2026-07-22
+    Version:        1.33 (English-only, live geocoding for all cities, hardened CSP/SRI, redesigned
+                    compact city panel, AQI tooltip, fixed-size content panel)
     Link:           https://github.com/ggr03/Time.N.Weather-Dashboard
     About:          Global Time & Weather dashboard for the Vivaldi Browser Side Panel.
     Note(s):        Created for the Vivaldi Browser community (https://vivaldi.com)
@@ -37,7 +38,7 @@
           http-equiv <meta> CSP cannot enforce them (they require a real HTTP response header,
           which a static HTML file served with no backend cannot send).
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com 'sha256-HnbK1gWe92H9WoOCfHFrQpoCjDVs0yuwGICTXLJIlZ4='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://geocoding-api.open-meteo.com https://api.open-meteo.com https://air-quality-api.open-meteo.com; base-uri 'none'; form-action 'none'; upgrade-insecure-requests;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com 'sha256-7GT9WKtVKhHN/3mQSumZcNZnQ6pDumDhVWhtuusS0Gk='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://geocoding-api.open-meteo.com https://api.open-meteo.com https://air-quality-api.open-meteo.com; base-uri 'none'; form-action 'none'; upgrade-insecure-requests;">
     <meta name="theme-color" content="#0f172a">
     <title>Time & Weather</title>
     <link rel="icon" type="image/png" href="time.n.weather.png">
@@ -421,16 +422,31 @@
             color: #ffffff; 
         }
 
+        .view-scroll-container {
+            width: 100%;
+            height: 480px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            padding-right: 4px;
+        }
+
+        .view-scroll-container::-webkit-scrollbar { width: 6px; }
+        .view-scroll-container::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
         .bento-grid { 
             display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
-            gap: 16px; 
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+            gap: 12px; 
             width: 100%; 
         }
 
         .bento-card { 
             background-color: var(--card-bg); 
-            padding: 1.5rem; 
+            padding: 1rem; 
             border-radius: 16px; 
             border: 1px solid var(--border-color); 
             display: flex; 
@@ -449,53 +465,58 @@
             cursor: help;
         }
 
+        /* AQI Tooltip Class */
+        .card-aqi {
+            cursor: help;
+        }
+
         .metric-label { 
             color: var(--text-muted); 
-            font-size: var(--font-sm); 
-            margin-bottom: 8px; 
+            font-size: var(--font-xs); 
+            margin-bottom: 5px; 
             text-transform: uppercase; 
             font-weight: 700; 
             letter-spacing: 1px;
         }
 
         .metric-value { 
-            font-size: var(--font-lg); 
+            font-size: var(--font-md); 
             font-weight: 700; 
             color: var(--text-main); 
             line-height: 1.2; 
         }
 
         .metric-sub { 
-            font-size: var(--font-sm); 
+            font-size: var(--font-xs); 
             color: var(--text-muted); 
-            margin-top: 4px; 
+            margin-top: 3px; 
         }
 
         .card-temp .metric-value { color: var(--accent-weather); }
-        .card-sun .metric-value { font-size: var(--font-lg); color: #fbbf24; }
-        .card-moon .metric-value { font-size: var(--font-lg); color: #cbd5e1; }
+        .card-sun .metric-value { font-size: var(--font-md); color: #fbbf24; }
+        .card-moon .metric-value { font-size: var(--font-md); color: #cbd5e1; }
 
         /* --- LUNAR METRICS & LIGHTING --- */
         .lighting-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
             width: 100%;
-            margin-top: 16px;
+            margin-top: 12px;
         }
 
         .lighting-card {
             background-color: var(--card-bg);
-            padding: 1.5rem;
+            padding: 1rem;
             border-radius: 16px;
             border: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            gap: 1.2rem;
+            gap: 0.8rem;
         }
 
         .lighting-card h4 {
-            font-size: var(--font-lg);
+            font-size: var(--font-md);
             margin: 0;
             color: var(--accent-weather);
             display: flex;
@@ -573,14 +594,10 @@
         }
 
         .hourly-list { 
-            max-height: 400px; 
-            overflow-y: auto; 
-            scrollbar-width: thin; 
-            scrollbar-color: var(--border-color) transparent; 
+            /* Scrolling is now handled by the outer .view-scroll-container so every
+               tab (Current/Hourly/Daily/Astro) shares one consistent panel size. */
         }
 
-        .hourly-list::-webkit-scrollbar { width: 6px; }
-        .hourly-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
 
         .forecast-item { 
             display: flex; 
@@ -699,6 +716,9 @@
                 padding: 1.5rem;
                 border-radius: 16px;
             }
+            .view-scroll-container {
+                height: 400px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -778,7 +798,7 @@
 
         // Translation Dictionary
         const i18n = {
-            en: { loc: 'en-US', search: "Search any city worldwide...", add: "Add City", local: "Current Conditions", h24: "Hourly", d7: "Daily", lunar: "Astro", cond: "Current Condition", feels: "Feels like", high: "High", low: "Low", rain: "Chance of Rain", sun: "Sunrise & Sunset", moon: "Moonrise & Moonset", aqi: "Air Quality (AQI)", hum: "Humidity", dew: "Dewpoint", wind: "Wind Speed", press: "Air Pressure", uv: "UV Index", uv_max: "Today's Max", aqi1: "Good", aqi2: "Moderate", aqi3: "Unhealthy for Sensitive", aqi4: "Unhealthy", aqi5: "Very Unhealthy", aqi6: "Hazardous", w0d: "Sunny / Clear", w0n: "Clear Night", w1: "Partly Cloudy", w3: "Overcast", w45: "Foggy", w51: "Drizzle", w56: "Freezing Drizzle", w61: "Rain", w66: "Freezing Rain", w71: "Snow", w80: "Showers", w85: "Snow Showers", w95: "Thunderstorm", w96: "Heavy Storm", unk: "Unknown", load: "Loading meteorological data...", err: "Connection Failed", err_txt: "We couldn't reach the weather servers. Please check your internet connection or try searching for the city again.", solar: "Solar Position", noon: "Noon", nadir: "Nadir", az: "Azimuth", alt: "Altitude", dn: "Day & Night Length", mPhase: "MOON PHASE", mIllum: "ILLUMINATION", mDist: "EARTH DISTANCE", mNextF: "NEXT FULL MOON", mNextN: "NEXT NEW MOON", mAge: "MOON AGE", m_sub1: "Lit Surface Fraction", m_sub2: "Geocentric Distance", m_sub3: "Synodic Cycle Progress", m_light: "Morning Light", e_light: "Evening Light", b_hour: "BLUE HOUR", g_hour: "GOLDEN HOUR", m_twi: "MORNING TWILIGHTS", e_twi: "EVENING TWILIGHTS", astro: "Astronomical:", naut: "Nautical:", civil: "Civil:", pollutants: "Pollutants", dust: "Dust", vis: "Visibility", vis1: "Clear", vis2: "Reduced", vis3: "Poor", vis_na: "Data unavailable" }
+            en: { loc: 'en-US', search: "Search any city worldwide...", add: "Add City", local: "Current", h24: "Hourly", d7: "Daily", lunar: "Astro", cond: "Current Condition", feels: "Feels like", high: "High", low: "Low", rain: "Chance of Rain", sun: "Sunrise & Sunset", moon: "Moonrise & Moonset", aqi: "Air Quality (AQI)", hum: "Humidity", dew: "Dewpoint", wind: "Wind Speed", press: "Air Pressure", uv: "UV Index", uv_max: "Today's Max", aqi1: "Good", aqi2: "Moderate", aqi3: "Unhealthy for Sensitive", aqi4: "Unhealthy", aqi5: "Very Unhealthy", aqi6: "Hazardous", w0d: "Sunny / Clear", w0n: "Clear Night", w1: "Partly Cloudy", w3: "Overcast", w45: "Foggy", w51: "Drizzle", w56: "Freezing Drizzle", w61: "Rain", w66: "Freezing Rain", w71: "Snow", w80: "Showers", w85: "Snow Showers", w95: "Thunderstorm", w96: "Heavy Storm", unk: "Unknown", load: "Loading meteorological data...", err: "Connection Failed", err_txt: "We couldn't reach the weather servers. Please check your internet connection or try searching for the city again.", solar: "Solar Position", noon: "Noon", nadir: "Nadir", az: "Azimuth", alt: "Altitude", dn: "Day & Night Length", mPhase: "MOON PHASE", mIllum: "ILLUMINATION", mDist: "EARTH DISTANCE", mNextF: "NEXT FULL MOON", mNextN: "NEXT NEW MOON", mAge: "MOON AGE", m_sub1: "Lit Surface Fraction", m_sub2: "Geocentric Distance", m_sub3: "Synodic Cycle Progress", m_light: "Morning Light", e_light: "Evening Light", b_hour: "BLUE HOUR", g_hour: "GOLDEN HOUR", m_twi: "MORNING TWILIGHTS", e_twi: "EVENING TWILIGHTS", astro: "Astronomical:", naut: "Nautical:", civil: "Civil:", pollutants: "Pollutants", dust: "Dust", vis: "Visibility", vis1: "Clear", vis2: "Reduced", vis3: "Poor", vis_na: "Data unavailable" }
         };
 
         // Builds a "City Name (CC)" style label using the ISO 3166-1 alpha-2 country
@@ -1100,7 +1120,7 @@
                 const hiF = Math.round(cToF(daily.temperature_2m_max[0]));
                 const loC = Math.round(daily.temperature_2m_min[0]);
                 const loF = Math.round(cToF(daily.temperature_2m_min[0]));
-                freshFeelsEl.innerHTML = `${t('feels')} <b>${feelsC}°C (${feelsF}°F)</b> | ${t('high')} <b>${hiC}°C (${hiF}°F)</b> | ${t('low')} <b>${loC}°C (${loF}°F)</b>`;
+                freshFeelsEl.innerHTML = `${t('feels')} <b>${feelsC}°C (${feelsF}°F)</b><br>${t('high')} <b>${hiC}°C (${hiF}°F)</b> | ${t('low')} <b>${loC}°C (${loF}°F)</b>`;
             } else {
                 freshFeelsEl.innerHTML = `${t('feels')} <b>${feelsC}°C (${feelsF}°F)</b>`;
             }
@@ -1342,6 +1362,19 @@
                     aqiObj = getAqiDescription(aqiVal);
                 }
 
+                // Short category summaries paraphrased from the EPA's AirNow.gov AQI Basics page
+                // (https://www.airnow.gov/aqi/aqi-basics/), shown as a hover tooltip on the AQI card.
+                let aqiSummary = "Data unavailable.";
+                if (aqiVal !== "--") {
+                    if (aqiVal <= 50) aqiSummary = "Good (0-50): Air quality is satisfactory and poses little or no health risk.";
+                    else if (aqiVal <= 100) aqiSummary = "Moderate (51-100): Air quality is acceptable, though unusually sensitive individuals may notice minor effects.";
+                    else if (aqiVal <= 150) aqiSummary = "Unhealthy for Sensitive Groups (101-150): People with heart or lung conditions, older adults, and children may start to feel effects.";
+                    else if (aqiVal <= 200) aqiSummary = "Unhealthy (151-200): Everyone may begin to notice effects; sensitive groups may experience more serious symptoms.";
+                    else if (aqiVal <= 300) aqiSummary = "Very Unhealthy (201-300): Health alert — risk of effects is increased for the entire population.";
+                    else aqiSummary = "Hazardous (301+): Emergency conditions — the entire population is likely to be affected.";
+                    aqiSummary += " Source: AirNow.gov (U.S. EPA)";
+                }
+
                 // --- ADDITIONAL POLLUTANTS (global coverage, unlike the Europe-only pollen dataset) ---
                 const co2Val = aqi?.carbon_dioxide ?? null;
                 const no2Val = aqi?.nitrogen_dioxide ?? null;
@@ -1409,6 +1442,7 @@
                         <button id="btn-lunar" class="toggle-btn" data-subtab="lunar">${t('lunar')}</button>
                     </div>
 
+                    <div class="view-scroll-container">
                     <div id="bento-view" class="bento-grid">
                         <div class="bento-card card-temp">
                             <span class="metric-label">${t('cond')}</span>
@@ -1471,8 +1505,8 @@
                             <span class="metric-value">${uvNowVal !== null ? uvNowVal.toFixed(1) : '--'}</span>
                             <span class="metric-sub">${t('uv_max')}: ${uvMaxVal !== null ? uvMaxVal.toFixed(1) : '--'}</span>
                         </div>
-                        <div class="bento-card">
-                            <span class="metric-label">${t('aqi')}</span>
+                        <div class="bento-card card-aqi" title="${aqiSummary}">
+                            <span class="metric-label">${t('aqi')} ℹ️</span>
                             <span class="metric-value" style="color: ${aqiObj.color};">${aqiVal}</span>
                             <span class="metric-sub">${aqiObj.text}</span>
                         </div>
@@ -1583,6 +1617,7 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
                     </div>
                 `;
 
