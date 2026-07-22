@@ -1,8 +1,12 @@
 <!--
-    Dashboard Version: Compact Panels with Dual Units (1-Column List)
+    Dashboard Version: Compact Panels with Dual Units (Ultra-Compact)
     Features: Search, Add/Remove, Drag & Drop Rearrange, Live Clock, Open-Meteo Integration
-    Metrics: Feels Like  AQI, Humidity, UV Index,  Wind Speed.
-    Version: 1.6
+    Metrics: Humidity, Wind, AQI, UV Index
+    Enhancements (v1.8):
+      - Changed the layout to automatically shrink-wrap the panels to eliminate wasted width.
+      - Panel and search container dynamically expand horizontally only if a city name requires it.
+      - Added overflow protection for extremely long city names.
+    Version: 1.8
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -37,8 +41,9 @@
         }
 
         .main-container { 
-            width: 100%; 
-            max-width: 600px; 
+            width: fit-content; /* Hugs the content tightly */
+            min-width: 320px; /* Keeps the search bar usable */
+            max-width: 95vw; /* Prevents blowing past the screen width */
             display: flex; 
             flex-direction: column; 
             gap: 1rem; 
@@ -60,6 +65,7 @@
             color: var(--text-main); 
             font-size: 0.95rem; 
             outline: none; 
+            min-width: 0; /* Allows input to shrink inside flex container */
         }
 
         input:focus { border-color: #38bdf8; }
@@ -74,6 +80,7 @@
             font-size: 0.95rem; 
             cursor: pointer; 
             transition: opacity 0.2s; 
+            flex-shrink: 0;
         }
 
         button.add-btn:hover { opacity: 0.8; }
@@ -90,7 +97,7 @@
         .city-panel {
             background: var(--panel-bg);
             border-radius: 10px;
-            padding: 14px 18px; /* Tighter padding */
+            padding: 14px 18px; 
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -99,7 +106,7 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
             transition: transform 0.2s, box-shadow 0.2s;
             user-select: none;
-            gap: 16px;
+            gap: 20px;
         }
 
         .city-panel.dragging {
@@ -126,6 +133,7 @@
             width: 24px; height: 24px;
             display: flex; align-items: center; justify-content: center;
             transition: 0.2s; 
+            z-index: 10;
         }
         .tab-close:hover { color: #fff; background: var(--danger); }
 
@@ -135,6 +143,7 @@
             flex-direction: column;
             gap: 2px;
             min-width: 160px;
+            white-space: nowrap; /* Forces container to stretch for long names initially */
         }
 
         .city-name {
@@ -142,6 +151,8 @@
             font-weight: 600; 
             margin: 0;
             letter-spacing: 0.3px;
+            overflow: hidden;
+            text-overflow: ellipsis; /* Failsafe for ridiculously long names */
         }
 
         .date-time {
@@ -193,45 +204,30 @@
         .panel-right {
             display: flex;
             flex-direction: column;
-            gap: 6px; /* Tighter gap for compactness */
-            min-width: 180px;
-            flex-grow: 1;
-            max-width: 240px;
+            gap: 8px;
+            min-width: 90px; /* Hugs the icons and values tightly */
+            padding-right: 12px; /* Avoids clipping the delete button */
         }
 
         .metric-row {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
-            font-size: var(--font-sm);
-        }
-
-        .metric-label-group {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--text-muted);
+            gap: 12px;
+            font-size: 0.95rem; 
         }
 
         .metric-icon {
-            font-size: 0.95rem;
+            font-size: 1.1rem;
             opacity: 0.8;
-            width: 16px;
+            width: 20px;
             text-align: center;
         }
 
         .metric-value {
             font-weight: 600;
             color: var(--text-main);
-            text-align: right;
             white-space: nowrap;
-        }
-
-        .unit-secondary {
-            font-size: 0.8em;
-            color: var(--text-dim);
-            font-weight: 400;
-            margin-left: 2px;
         }
 
         .loading-text {
@@ -253,7 +249,18 @@
                 padding-top: 10px;
                 border-top: 1px solid rgba(255, 255, 255, 0.1);
                 width: 100%;
-                max-width: unset;
+                gap: 6px;
+                flex-direction: row;
+                flex-wrap: wrap;
+                padding-right: 0;
+            }
+
+            .metric-row {
+                width: 45%; 
+            }
+            
+            .panel-left {
+                white-space: normal; /* Allow wrapping on small screens */
             }
         }
     </style>
@@ -298,7 +305,6 @@
             });
         }
 
-        function kmhToMs(kmh) { return (kmh / 3.6).toFixed(1); }
         function kmhToMph(kmh) { return (kmh / 1.60934).toFixed(1); }
 
         // --- GEOCODING & SEARCH ---
@@ -356,7 +362,7 @@
         }
 
         function saveToLocal() { 
-            localStorage.setItem('dashboardCities_CompactV6', JSON.stringify(myCities)); 
+            localStorage.setItem('dashboardCities_CompactV8', JSON.stringify(myCities)); 
         }
 
         // --- WEATHER API ---
@@ -447,7 +453,8 @@
                         </div>
                     </div>
                     <div class="panel-right" id="metrics-${safeId}">
-                        </div>
+                        <!-- Metrics injected here -->
+                    </div>
                 `;
                 container.appendChild(panel);
 
@@ -484,38 +491,26 @@
             `;
             
             const hum = cur.relative_humidity_2m;
-            
-            const windKmh = cur.wind_speed_10m;
-            const windMs = kmhToMs(windKmh);
-            const windMph = kmhToMph(windKmh);
-
+            const windMph = kmhToMph(cur.wind_speed_10m);
             const aqi = aqiData && aqiData.us_aqi !== null ? aqiData.us_aqi : '--';
             const uv = cur.uv_index !== null ? cur.uv_index.toFixed(1) : '--';
 
             // Metrics List Output - Humidity, Wind, AQI, UV Index
             document.getElementById(`metrics-${safeId}`).innerHTML = `
-                <div class="metric-row">
-                    <div class="metric-label-group">
-                        <span class="metric-icon">💧</span> <span>Humidity</span>
-                    </div>
+                <div class="metric-row" title="Humidity">
+                    <span class="metric-icon">💧</span>
                     <span class="metric-value">${hum}%</span>
                 </div>
-                <div class="metric-row">
-                    <div class="metric-label-group">
-                        <span class="metric-icon">💨</span> <span>Wind</span>
-                    </div>
-                    <span class="metric-value">${windMs} m/s <span class="unit-secondary">(${windMph} mph)</span></span>
+                <div class="metric-row" title="Wind Speed">
+                    <span class="metric-icon">💨</span>
+                    <span class="metric-value">${windMph} mph</span>
                 </div>
-                <div class="metric-row">
-                    <div class="metric-label-group">
-                        <span class="metric-icon">🍃</span> <span>AQI</span>
-                    </div>
+                <div class="metric-row" title="Air Quality Index">
+                    <span class="metric-icon">🍃</span>
                     <span class="metric-value">${aqi}</span>
                 </div>
-                <div class="metric-row">
-                    <div class="metric-label-group">
-                        <span class="metric-icon">☀️</span> <span>UV Index</span>
-                    </div>
+                <div class="metric-row" title="UV Index">
+                    <span class="metric-icon">☀️</span>
                     <span class="metric-value">${uv}</span>
                 </div>
             `;
@@ -539,7 +534,7 @@
         }
 
         function init() {
-            const saved = localStorage.getItem('dashboardCities_CompactV6');
+            const saved = localStorage.getItem('dashboardCities_CompactV8');
             if (saved) myCities = JSON.parse(saved);
             
             renderPanels();
