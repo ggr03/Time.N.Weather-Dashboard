@@ -37,7 +37,7 @@
           http-equiv <meta> CSP cannot enforce them (they require a real HTTP response header,
           which a static HTML file served with no backend cannot send).
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com 'sha256-ID6oowuIIm2qR22U8CT1lTfTgIgGNfYZp0/NmoFok1Q='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://geocoding-api.open-meteo.com https://api.open-meteo.com https://air-quality-api.open-meteo.com; base-uri 'none'; form-action 'none'; upgrade-insecure-requests;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com 'sha256-HnbK1gWe92H9WoOCfHFrQpoCjDVs0yuwGICTXLJIlZ4='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://geocoding-api.open-meteo.com https://api.open-meteo.com https://air-quality-api.open-meteo.com; base-uri 'none'; form-action 'none'; upgrade-insecure-requests;">
     <meta name="theme-color" content="#0f172a">
     <title>Time & Weather</title>
     <link rel="icon" type="image/png" href="time.n.weather.png">
@@ -229,8 +229,14 @@
             align-items: center; 
             justify-content: space-between; 
             width: 100%; 
-            gap: 10px; 
+            gap: 12px; 
             margin-bottom: 6px; 
+        }
+
+        .tab-header-left { 
+            display: flex; 
+            flex-direction: column; 
+            min-width: 0; 
         }
 
         .tab-city-name { 
@@ -239,7 +245,7 @@
         }
 
         .tab-header-icon { 
-            font-size: clamp(1.8rem, 3.2vw + 1.2rem, 2.4rem); 
+            font-size: clamp(2.8rem, 5vw + 2rem, 4rem); 
             line-height: 1; 
             flex-shrink: 0; 
         }
@@ -1024,10 +1030,12 @@
                     <button class="tab-close">&times;</button>
                     <div class="tab-content-wrapper">
                         <div class="tab-header-row">
-                            <div class="tab-city-name">${escapeHTML(getCityDisplayLabel(location))}</div>
+                            <div class="tab-header-left">
+                                <div class="tab-city-name">${escapeHTML(getCityDisplayLabel(location))}</div>
+                                <div class="tab-time" id="tab-time-${safeId}">--:--:--</div>
+                            </div>
                             <div class="tab-header-icon" id="tab-icon-${safeId}">&nbsp;</div>
                         </div>
-                        <div class="tab-time" id="tab-time-${safeId}">--:--:--</div>
                         <div class="tab-date" id="tab-date-${safeId}">----/--/--</div>
                         <div class="tab-condition" id="tab-cond-${safeId}">
                             <span class="tab-cond-temp">--</span>
