@@ -1,7 +1,7 @@
 <!--
     Created by:     GGR, Maryland, USA
-    Date:           2026-07-18
-    Version:        1.30 (Eradicated static cityData array; 100% dynamic Open-Meteo Geocoding)
+    Date:           2026-07-14
+    Version:        1.26 (Fixed units being displayed and added mobile browser display)
     Link:           https://github.com/ggr03/Time.N.Weather-Dashboard
     About:          Global Time & Weather dashboard for the Vivaldi Browser Side Panel.
     Note(s):        Created for the Vivaldi Browser community (https://vivaldi.com)
@@ -20,7 +20,24 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://geocoding-api.open-meteo.com https://api.open-meteo.com https://air-quality-api.open-meteo.com; base-uri 'none'; form-action 'none'; upgrade-insecure-requests;">
+    <!--
+        Content-Security-Policy notes:
+        - script-src allows only the cdnjs-hosted suncalc library plus this file's own inline
+          <script> block, pinned by exact SHA-256 hash (no 'unsafe-inline' for scripts).
+        - IMPORTANT: if you ever edit the code inside the <script>...</script> block near the
+          end of this file, this hash will no longer match and the browser will silently refuse
+          to run the script. Recompute it after any edit with:
+              openssl dgst -sha256 -binary script_body.js | openssl base64 -A
+          (script_body.js = exact text between <script> and </script>, no tags included)
+          then replace the 'sha256-...' value below with the new hash.
+        - style-src still needs 'unsafe-inline' because the dashboard sets per-element inline
+          style="" attributes dynamically (e.g. AQI colors); removing that would require moving
+          every dynamic style to CSS classes toggled via JS, a larger refactor than this fix.
+        - frame-ancestors and other header-only directives are intentionally omitted: an
+          http-equiv <meta> CSP cannot enforce them (they require a real HTTP response header,
+          which a static HTML file served with no backend cannot send).
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com 'sha256-ID6oowuIIm2qR22U8CT1lTfTgIgGNfYZp0/NmoFok1Q='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://geocoding-api.open-meteo.com https://api.open-meteo.com https://air-quality-api.open-meteo.com; base-uri 'none'; form-action 'none'; upgrade-insecure-requests;">
     <meta name="theme-color" content="#0f172a">
     <title>Time & Weather</title>
     <link rel="icon" type="image/png" href="time.n.weather.png">
@@ -36,6 +53,7 @@
             --bg-body: #0f172a;
             --accent-weather: #38bdf8;
             --danger: #f87171;
+            --font-xs: clamp(0.62rem, 0.4vw + 0.35rem, 0.75rem);
             --font-sm: clamp(0.7rem, 0.5vw + 0.4rem, 0.85rem);
             --font-md: clamp(0.9rem, 1vw + 0.5rem, 1.05rem);
             --font-lg: clamp(1.1rem, 2vw + 1rem, 1.4rem);
@@ -165,14 +183,13 @@
         }
 
         .tab { 
-            padding: 24px; 
-            border-radius: 16px; 
+            padding: 24px 24px; 
+            border-radius: 8px; 
             border: 2px solid transparent; 
             cursor: pointer; 
             display: flex; 
             flex-direction: column; 
-            align-items: flex-start; 
-            text-align: left;
+            align-items: stretch; 
             transition: all 0.2s; 
             width: 100%; 
             box-sizing: border-box; 
@@ -199,97 +216,94 @@
             border: 1px solid #334155; 
         }
 
-        .tab-grip {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            font-size: 14px;
-            color: #475569;
-            cursor: grab;
-            user-select: none;
-        }
-
         .tab-content-wrapper { 
             display: flex; 
             flex-direction: column; 
             align-items: flex-start; 
             text-align: left; 
             width: 100%; 
-            padding-top: 4px;
+        }
+
+        .tab-header-row { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            width: 100%; 
+            gap: 10px; 
+            margin-bottom: 6px; 
         }
 
         .tab-city-name { 
             font-weight: 800; 
             font-size: var(--font-lg); 
-            margin-bottom: 4px; 
-            padding-left: 14px; /* Space for the grip */
         }
 
-        .tab-datetime-clock {
-            font-size: var(--font-xl);
-            font-weight: bold;
-            line-height: 1;
-            margin-bottom: 4px;
+        .tab-header-icon { 
+            font-size: clamp(1.8rem, 3.2vw + 1.2rem, 2.4rem); 
+            line-height: 1; 
+            flex-shrink: 0; 
         }
 
-        .tab-day .tab-datetime-clock { color: #7dd3fc; }
-        .tab-night .tab-datetime-clock { color: #38bdf8; }
-
-        .tab-datetime-date {
-            font-size: var(--font-sm);
-            margin-bottom: 8px;
+        .tab-time { 
+            font-size: var(--font-xl); 
+            font-weight: bold; 
+            letter-spacing: 0.5px;
         }
 
-        .tab-day .tab-datetime-date { color: #cbd5e1; }
-        .tab-night .tab-datetime-date { color: #94a3b8; }
+        .tab-day .tab-time { color: #7dd3fc; }
+        .tab-night .tab-time { color: #38bdf8; }
 
-        .tab-weather-info {
-            width: 100%;
+        .tab-date { 
+            font-size: var(--font-sm); 
+            margin-top: 2px; 
+            margin-bottom: 10px; 
         }
 
-        .tab-weather-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: var(--font-md);
-            flex-wrap: wrap;
+        .tab-day .tab-date { color: #cbd5e1; }
+        .tab-night .tab-date { color: #94a3b8; }
+
+        .tab-condition { 
+            display: flex; 
+            align-items: center; 
+            justify-content: flex-start; 
+            gap: 8px; 
+            font-size: var(--font-xs); 
+            flex-wrap: wrap; 
         }
 
-        .tab-weather-icon {
-            font-size: 1.8rem;
-            line-height: 1;
+        .tab-condition .tab-cond-temp { font-size: var(--font-sm); font-weight: 800; }
+        .tab-day .tab-condition .tab-cond-text { color: #cbd5e1; }
+        .tab-night .tab-condition .tab-cond-text { color: #94a3b8; }
+
+        .tab-feels-hilo { 
+            font-size: var(--font-xs); 
+            margin-top: 8px; 
+            padding-top: 8px; 
+            width: 100%; 
+            text-align: left; 
+            border-top: 1px dashed rgba(148, 163, 184, 0.3); 
+            line-height: 1.45;
         }
 
-        .tab-temp-c {
-            font-weight: bold;
-            font-size: var(--font-lg);
+        .tab-day .tab-feels-hilo { color: #cbd5e1; }
+        .tab-night .tab-feels-hilo { color: #94a3b8; }
+        .tab-feels-hilo b { font-weight: 700; }
+        .tab-day .tab-feels-hilo b { color: #f8fafc; }
+        .tab-night .tab-feels-hilo b { color: #f8fafc; }
+
+        .tab-precip { 
+            font-size: var(--font-xs); 
+            margin-top: 3px; 
+            width: 100%; 
+            text-align: left; 
+            line-height: 1.45;
         }
 
-        .tab-temp-f {
-            color: #94a3b8;
-        }
-
-        .tab-cond-text {
-            color: #cbd5e1;
-            font-size: var(--font-sm);
-        }
-
-        .tab-divider {
-            width: 100%;
-            border: none;
-            border-top: 1px dashed rgba(148, 163, 184, 0.3);
-            margin: 8px 0;
-        }
-
-        .tab-feels-like {
-            font-size: var(--font-sm);
-            color: #94a3b8;
-        }
-
-        .tab-feels-like span {
-            font-weight: bold;
-            color: #cbd5e1;
-        }
+        .tab-day .tab-precip { color: #cbd5e1; }
+        .tab-night .tab-precip { color: #94a3b8; }
+        .tab-precip b { font-weight: 700; }
+        .tab-day .tab-precip b { color: #f8fafc; }
+        .tab-night .tab-precip b { color: #f8fafc; }
 
         .tab-close { 
             position: absolute; 
@@ -756,85 +770,18 @@
             SunCalc._customAnglesAdded = true;
         }
 
-        // Translation Dictionary (English Only)
-        const lang = {
-            search: "Search any city worldwide...",
-            add: "Add City",
-            local: "Current Conditions",
-            h24: "Hourly",
-            d7: "Daily",
-            lunar: "Astro",
-            cond: "Current Condition",
-            feels: "Feels like",
-            sun: "Sunrise & Sunset",
-            moon: "Moonrise & Moonset",
-            aqi: "Air Quality (AQI)",
-            hum: "Humidity",
-            dew: "Dewpoint",
-            wind: "Wind Speed",
-            press: "Air Pressure",
-            uv: "UV Index",
-            uv_max: "Today's Max",
-            aqi1: "Good",
-            aqi2: "Moderate",
-            aqi3: "Unhealthy for Sensitive",
-            aqi4: "Unhealthy",
-            aqi5: "Very Unhealthy",
-            aqi6: "Hazardous",
-            w0d: "Sunny / Clear",
-            w0n: "Clear Night",
-            w1: "Partly Cloudy",
-            w3: "Overcast",
-            w45: "Foggy",
-            w51: "Drizzle",
-            w56: "Freezing Drizzle",
-            w61: "Rain",
-            w66: "Freezing Rain",
-            w71: "Snow",
-            w80: "Showers",
-            w85: "Snow Showers",
-            w95: "Thunderstorm",
-            w96: "Heavy Storm",
-            unk: "Unknown",
-            load: "Loading meteorological data...",
-            err: "Connection Failed",
-            err_txt: "We couldn't reach the weather servers. Please check your internet connection or try searching for the city again.",
-            solar: "Solar Position",
-            noon: "Noon",
-            nadir: "Nadir",
-            az: "Azimuth",
-            alt: "Altitude",
-            dn: "Day & Night Length",
-            mPhase: "MOON PHASE",
-            mIllum: "ILLUMINATION",
-            mDist: "EARTH DISTANCE",
-            mNextF: "NEXT FULL MOON",
-            mNextN: "NEXT NEW MOON",
-            mAge: "MOON AGE",
-            m_sub1: "Lit Surface Fraction",
-            m_sub2: "Geocentric Distance",
-            m_sub3: "Synodic Cycle Progress",
-            m_light: "Morning Light",
-            e_light: "Evening Light",
-            b_hour: "BLUE HOUR",
-            g_hour: "GOLDEN HOUR",
-            m_twi: "MORNING TWILIGHTS",
-            e_twi: "EVENING TWILIGHTS",
-            astro: "Astronomical:",
-            naut: "Nautical:",
-            civil: "Civil:",
-            pollutants: "Pollutants",
-            dust: "Dust",
-            vis: "Visibility",
-            vis1: "Clear",
-            vis2: "Reduced",
-            vis3: "Poor",
-            vis_na: "Data unavailable"
+        // Translation Dictionary
+        const i18n = {
+            en: { loc: 'en-US', search: "Search any city worldwide...", add: "Add City", local: "Current Conditions", h24: "Hourly", d7: "Daily", lunar: "Astro", cond: "Current Condition", feels: "Feels like", high: "High", low: "Low", rain: "Chance of Rain", sun: "Sunrise & Sunset", moon: "Moonrise & Moonset", aqi: "Air Quality (AQI)", hum: "Humidity", dew: "Dewpoint", wind: "Wind Speed", press: "Air Pressure", uv: "UV Index", uv_max: "Today's Max", aqi1: "Good", aqi2: "Moderate", aqi3: "Unhealthy for Sensitive", aqi4: "Unhealthy", aqi5: "Very Unhealthy", aqi6: "Hazardous", w0d: "Sunny / Clear", w0n: "Clear Night", w1: "Partly Cloudy", w3: "Overcast", w45: "Foggy", w51: "Drizzle", w56: "Freezing Drizzle", w61: "Rain", w66: "Freezing Rain", w71: "Snow", w80: "Showers", w85: "Snow Showers", w95: "Thunderstorm", w96: "Heavy Storm", unk: "Unknown", load: "Loading meteorological data...", err: "Connection Failed", err_txt: "We couldn't reach the weather servers. Please check your internet connection or try searching for the city again.", solar: "Solar Position", noon: "Noon", nadir: "Nadir", az: "Azimuth", alt: "Altitude", dn: "Day & Night Length", mPhase: "MOON PHASE", mIllum: "ILLUMINATION", mDist: "EARTH DISTANCE", mNextF: "NEXT FULL MOON", mNextN: "NEXT NEW MOON", mAge: "MOON AGE", m_sub1: "Lit Surface Fraction", m_sub2: "Geocentric Distance", m_sub3: "Synodic Cycle Progress", m_light: "Morning Light", e_light: "Evening Light", b_hour: "BLUE HOUR", g_hour: "GOLDEN HOUR", m_twi: "MORNING TWILIGHTS", e_twi: "EVENING TWILIGHTS", astro: "Astronomical:", naut: "Nautical:", civil: "Civil:", pollutants: "Pollutants", dust: "Dust", vis: "Visibility", vis1: "Clear", vis2: "Reduced", vis3: "Poor", vis_na: "Data unavailable" }
         };
 
-        function t(key) {
-            return lang[key] || key;
+        // Builds a "City Name (CC)" style label using the ISO 3166-1 alpha-2 country
+        // code returned directly by the Open-Meteo geocoding API for every city.
+        function getCityDisplayLabel(location) {
+            const shortName = (location.city || '').split(',')[0].trim();
+            return location.cc ? `${shortName} (${location.cc})` : shortName;
         }
+
 
         let myCities = [];
         let activeCityName = null;
@@ -844,6 +791,18 @@
         let geoResults = {};
         const GEO_MIN_CHARS = 2;
         let draggedCityIndex = null;
+
+        // Translation helper (English-only; kept so the rest of the app can keep
+        // calling t('key') without every call site needing to change).
+        function t(key) {
+            return i18n.en[key] || key;
+        }
+
+        function updateUILanguage() {
+            document.getElementById('city-search').placeholder = t('search');
+            document.getElementById('add-city-btn').textContent = t('add');
+            renderApp();
+        }
 
         function escapeHTML(str) {
             if (typeof str !== 'string') return str;
@@ -889,6 +848,7 @@
         }
 
         function cToF(c) { return Math.round((c * 1.8 + 32) * 10) / 10; }
+        function mmToIn(mm) { return Math.round((mm * 0.0393701) * 100) / 100; }
 
         function getWeatherDescription(code, isDay = true) {
             if (code === 0) return { icon: isDay ? "☀️" : "🌙", text: isDay ? t('w0d') : t('w0n') };
@@ -931,26 +891,20 @@
                 activeCityName = null; 
             }
 
-            renderApp();
+            updateUILanguage();
             setInterval(updateLiveClock, 1000);
         }
 
         function saveToLocal() { localStorage.setItem('dashboardCitiesV21', JSON.stringify(myCities)); }
 
-        function getCityDisplayLabel(location) {
-            const shortName = (location.city || '').split(',')[0].trim();
-            const cc = location.cc || '';
-            return cc ? `${shortName} (${cc.toUpperCase()})` : shortName;
-        }
-
         function addCity() {
             const input = document.getElementById('city-search');
-            let query = input.value.trim().toLowerCase();
+            const query = input.value.trim().toLowerCase();
             if (!query) return;
 
             let location = geoResults[query];
 
-            if (!location) return alert("City not found. Please type a city name and select it from the dynamic dropdown list.");
+            if (!location) return alert("City not found. Please select from the dropdown list.");
             
             if (myCities.some(c => c.city === location.city)) {
                 activeCityName = location.city; 
@@ -1067,15 +1021,20 @@
                 });
                 
                 btn.innerHTML = `
-                    <div class="tab-grip">⁝⁝</div>
                     <button class="tab-close">&times;</button>
                     <div class="tab-content-wrapper">
-                        <div class="tab-city-name">${escapeHTML(getCityDisplayLabel(location))}</div>
-                        <div class="tab-datetime-clock" id="tab-time-${safeId}">--:--:--</div>
-                        <div class="tab-datetime-date" id="tab-date-${safeId}">----, --- --</div>
-                        <div class="tab-weather-info" id="tab-weather-${safeId}">
-                            <div style="font-size: var(--font-sm); opacity: 0.6; padding-left: 14px;">Loading weather...</div>
+                        <div class="tab-header-row">
+                            <div class="tab-city-name">${escapeHTML(getCityDisplayLabel(location))}</div>
+                            <div class="tab-header-icon" id="tab-icon-${safeId}">&nbsp;</div>
                         </div>
+                        <div class="tab-time" id="tab-time-${safeId}">--:--:--</div>
+                        <div class="tab-date" id="tab-date-${safeId}">----/--/--</div>
+                        <div class="tab-condition" id="tab-cond-${safeId}">
+                            <span class="tab-cond-temp">--</span>
+                            <span class="tab-cond-text">${t('load')}</span>
+                        </div>
+                        <div class="tab-feels-hilo" id="tab-feels-${safeId}">&nbsp;</div>
+                        <div class="tab-precip" id="tab-precip-${safeId}">&nbsp;</div>
                     </div>
                 `;
 
@@ -1083,56 +1042,84 @@
                 closeBtn.addEventListener('click', (event) => removeCity(location.city, event));
 
                 container.appendChild(btn);
-
-                // Fetch weather asynchronous updates specifically mapped to the parsed grid inside tabs
-                loadTabWeather(location, safeId);
+                updateTabWeather(location, safeId);
             });
 
             updateLiveClock(); 
         }
 
-        async function loadTabWeather(location, safeId) {
+        async function updateTabWeather(location, safeId) {
+            const iconEl = document.getElementById(`tab-icon-${safeId}`);
+            const condEl = document.getElementById(`tab-cond-${safeId}`);
+            const feelsEl = document.getElementById(`tab-feels-${safeId}`);
+            const precipEl = document.getElementById(`tab-precip-${safeId}`);
+            if (!iconEl || !condEl || !feelsEl || !precipEl) return;
+
             const data = await fetchWeather(location.lat, location.lon, location.tz, location.city);
-            const weatherDiv = document.getElementById(`tab-weather-${safeId}`);
-            if (!weatherDiv) return;
 
-            if (data && data.current) {
-                const cur = data.current;
-                const tempC = Math.round(cur.temperature_2m ?? 0);
-                const tempF = Math.round(cToF(cur.temperature_2m ?? 0));
-                const apparentC = Math.round(cur.apparent_temperature ?? 0);
-                const apparentF = Math.round(cToF(cur.apparent_temperature ?? 0));
-                
-                const isDay = cur.is_day === 1;
-                const cond = getWeatherDescription(cur.weather_code ?? 0, isDay);
+            // The user may have removed the city (or switched tabs, re-rendering fresh
+            // elements) while the fetch was in flight — re-check the DOM before writing.
+            const freshIconEl = document.getElementById(`tab-icon-${safeId}`);
+            const freshCondEl = document.getElementById(`tab-cond-${safeId}`);
+            const freshFeelsEl = document.getElementById(`tab-feels-${safeId}`);
+            const freshPrecipEl = document.getElementById(`tab-precip-${safeId}`);
+            if (!freshIconEl || !freshCondEl || !freshFeelsEl || !freshPrecipEl) return;
 
-                weatherDiv.innerHTML = `
-                    <div class="tab-weather-row">
-                        <span class="tab-weather-icon">${cond.icon}</span>
-                        <span class="tab-temp-c">${tempC}°C</span>
-                        <span class="tab-temp-f">${tempF}°F</span>
-                        <span class="tab-cond-text">${escapeHTML(cond.text)}</span>
-                    </div>
-                    <div class="tab-divider"></div>
-                    <div class="tab-feels-like">Feels like <span>${apparentC}°C</span> <span style="font-size: 0.85em; font-weight: normal; opacity: 0.8;">${apparentF}°F</span></div>
-                `;
+            if (!data || !data.current) {
+                freshCondEl.querySelector('.tab-cond-text').textContent = t('err');
+                freshFeelsEl.innerHTML = '&nbsp;';
+                freshPrecipEl.innerHTML = '&nbsp;';
+                return;
+            }
+
+            const cur = data.current;
+            const isDay = cur.is_day === 1;
+            const condition = getWeatherDescription(cur.weather_code ?? 0, isDay);
+            const tempC = Math.round(cur.temperature_2m ?? 0);
+            const tempF = Math.round(cToF(cur.temperature_2m ?? 0));
+            const feelsC = Math.round(cur.apparent_temperature ?? 0);
+            const feelsF = Math.round(cToF(cur.apparent_temperature ?? 0));
+
+            freshIconEl.textContent = condition.icon;
+            freshCondEl.innerHTML = `
+                <span class="tab-cond-temp">${tempC}°C (${tempF}°F)</span>
+                <span class="tab-cond-text">${escapeHTML(condition.text)}</span>
+            `;
+
+            const daily = data.daily;
+            if (daily && daily.temperature_2m_max && daily.temperature_2m_max[0] !== undefined) {
+                const hiC = Math.round(daily.temperature_2m_max[0]);
+                const hiF = Math.round(cToF(daily.temperature_2m_max[0]));
+                const loC = Math.round(daily.temperature_2m_min[0]);
+                const loF = Math.round(cToF(daily.temperature_2m_min[0]));
+                freshFeelsEl.innerHTML = `${t('feels')} <b>${feelsC}°C (${feelsF}°F)</b> | ${t('high')} <b>${hiC}°C (${hiF}°F)</b> | ${t('low')} <b>${loC}°C (${loF}°F)</b>`;
             } else {
-                weatherDiv.innerHTML = `<div style="font-size: var(--font-sm); opacity: 0.6; margin-top: 8px;">Weather unavailable</div>`;
+                freshFeelsEl.innerHTML = `${t('feels')} <b>${feelsC}°C (${feelsF}°F)</b>`;
+            }
+
+            if (daily && daily.precipitation_probability_max && daily.precipitation_probability_max[0] !== undefined) {
+                const rainPct = Math.round(daily.precipitation_probability_max[0]);
+                const rainMm = Math.round((daily.precipitation_sum?.[0] ?? 0) * 10) / 10;
+                const rainIn = mmToIn(daily.precipitation_sum?.[0] ?? 0);
+                freshPrecipEl.innerHTML = `${t('rain')} <b>${rainPct}%</b> | <b>${rainMm}mm (${rainIn}in)</b>`;
+            } else {
+                freshPrecipEl.innerHTML = '&nbsp;';
             }
         }
 
         function updateLiveClock() {
             const now = new Date();
+            const locale = i18n.en.loc || 'en-US';
             myCities.forEach(location => {
                 const safeId = location.city.replace(/[^a-zA-Z0-9]/g, '-');
                 const tabTimeEl = document.getElementById(`tab-time-${safeId}`);
                 const tabDateEl = document.getElementById(`tab-date-${safeId}`);
 
                 if (tabTimeEl && tabDateEl) {
-                    tabTimeEl.textContent = now.toLocaleTimeString('en-US', {
+                    tabTimeEl.textContent = now.toLocaleTimeString(locale, {
                         timeZone: location.tz, hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
                     });
-                    tabDateEl.textContent = now.toLocaleDateString('en-US', {
+                    tabDateEl.textContent = now.toLocaleDateString(locale, {
                         timeZone: location.tz, weekday: 'long', month: 'long', day: 'numeric'
                     });
                 }
@@ -1152,7 +1139,7 @@
             }
 
             const encTz = encodeURIComponent(tz);
-            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,dew_point_2m,surface_pressure,wind_speed_10m,visibility,uv_index,is_day,weather_code&hourly=temperature_2m,weather_code,is_day&daily=sunrise,sunset,uv_index_max,temperature_2m_max,temperature_2m_min,weather_code&timezone=${encTz}&wind_speed_unit=mph`;
+            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,dew_point_2m,surface_pressure,wind_speed_10m,visibility,uv_index,is_day,weather_code&hourly=temperature_2m,weather_code,is_day&daily=sunrise,sunset,uv_index_max,temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max,precipitation_sum&timezone=${encTz}&wind_speed_unit=mph&precipitation_unit=mm`;
             const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=us_aqi,carbon_dioxide,nitrogen_dioxide,dust&timezone=${encTz}`;
             
             try {
@@ -1180,7 +1167,7 @@
             const currentIso = data.current?.time; 
             let startIndex = data.hourly?.time?.indexOf(currentIso) ?? 0;
             if (startIndex === -1) startIndex = 0; 
-            const locale = 'en-US';
+            const locale = i18n.en.loc || 'en-US';
             
             let hourlyHtml = '<div class="forecast-list hourly-list">';
             const maxHourly = Math.min(startIndex + 24, data.hourly?.time?.length || 0);
@@ -1247,7 +1234,7 @@
             let nextFull = null;
             let nextNew = null;
             let prevPhase = SunCalc.getMoonIllumination(now).phase;
-            const locale = 'en-US';
+            const locale = i18n.en.loc || 'en-US';
             
             for (let i = 1; i <= 35 * 24; i++) {
                 let checkDate = new Date(now.getTime() + i * 3600 * 1000);
@@ -1271,6 +1258,7 @@
         }
 
         function getMoonPhaseInfo(phase) {
+            // Re-using basic icons, could translate phase names but kept simple with icons
             if (phase < 0.03 || phase > 0.97) return { name: "New Moon", icon: "🌑" };
             if (phase < 0.22) return { name: "Waxing Crescent", icon: "🌒" };
             if (phase < 0.28) return { name: "First Quarter", icon: "🌓" };
@@ -1290,7 +1278,7 @@
                 const cur = data.current;
                 const day = data.daily;
                 const aqi = data.airQuality && data.airQuality.current ? data.airQuality.current : null;
-                const locale = 'en-US';
+                const locale = i18n.en.loc || 'en-US';
                 
                 const isDay = cur.is_day === 1;
                 wrapperElement.className = `content-area active ${isDay ? 'theme-day' : 'theme-night'}`;
@@ -1328,6 +1316,7 @@
                 
                 if (typeof SunCalc !== 'undefined') {
                     const moonTimes = SunCalc.getMoonTimes(now, location.lat, location.lon);
+                    // Updated to 24-hour clock formatting correctly across locales
                     const formatMoonTime = (dateObj) => {
                         if (!dateObj || isNaN(dateObj.getTime())) return "--:--";
                         return dateObj.toLocaleTimeString(locale, {
@@ -1345,10 +1334,12 @@
                     aqiObj = getAqiDescription(aqiVal);
                 }
 
+                // --- ADDITIONAL POLLUTANTS (global coverage, unlike the Europe-only pollen dataset) ---
                 const co2Val = aqi?.carbon_dioxide ?? null;
                 const no2Val = aqi?.nitrogen_dioxide ?? null;
                 const dustVal = aqi?.dust ?? null;
 
+                // --- VISIBILITY ---
                 const visMeters = cur.visibility ?? null;
                 const visKm = visMeters !== null ? (visMeters / 1000).toFixed(1) : null;
                 const visMi = visMeters !== null ? (visMeters / 1609.34).toFixed(1) : null;
@@ -1365,8 +1356,9 @@
                 const nextMoons = getNextMoonDates(now, location.tz);
                 
                 const sunTimes = SunCalc.getTimes(now, location.lat, location.lon);
+                // Get general Sun Position (Azimuth & Altitude) in degrees
                 const sunPosData = SunCalc.getPosition(now, location.lat, location.lon);
-                const sunAzimuth = Math.round((sunPosData.azimuth * 180 / Math.PI + 180) % 360); 
+                const sunAzimuth = Math.round((sunPosData.azimuth * 180 / Math.PI + 180) % 360); // Compass bearing
                 const sunAltitude = Math.round(sunPosData.altitude * 180 / Math.PI);
 
                 const fmtSun = (d) => {
@@ -1374,6 +1366,7 @@
                     return d.toLocaleTimeString(locale, { timeZone: location.tz, hour: '2-digit', minute: '2-digit', hour12: false });
                 };
 
+                // --- DUAL UNITS CALCULATION ---
                 let windMph = cur.wind_speed_10m ?? 0;
                 let windKmh = Math.round(windMph * 1.60934);
                 
@@ -1383,6 +1376,11 @@
                 let moonDistKm = Math.round(moonPos.distance);
                 let moonDistMi = Math.round(moonDistKm * 0.621371);
 
+                // --- UV INDEX TOOLTIP ---
+                // --- UV INDEX ---
+                // uv_index_max is the day's forecasted PEAK (occurs near solar noon) and stays
+                // the same number all day/night by definition. current.uv_index is the
+                // real-time value, which correctly falls to 0 after dusk / before dawn.
                 let uvMaxVal = day?.uv_index_max?.[0] ?? null;
                 let uvNowVal = cur.uv_index ?? null;
                 let uvSummary = "Data unavailable";
