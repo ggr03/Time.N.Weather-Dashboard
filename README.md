@@ -130,20 +130,7 @@ The Morning and Evening Lighting panels track specific solar angles beneath the 
 
 ---
 
-## 6. Language Support
-
-Below the city search bar, a dropdown menu displays your active language (e.g., "English"). The full UI — labels, weather condition text, and date/time formatting — translates instantly on selection, with no page reload. Languages are grouped by region:
-
-- **European:** English, Spanish, French, German, and more
-- **Indian:** Hindi, Bengali, Tamil, Kannada, Telugu, and more
-- **East Asian:** Chinese, Japanese, Korean
-- **African:** Swahili, and more
-
-Your language choice is remembered the next time you open the dashboard.
-
----
-
-## 7. Mobile & Cross-Browser Support
+## 6. Mobile & Cross-Browser Support
 
 The dashboard is fully responsive and touch-friendly, tested across:
 
@@ -160,7 +147,7 @@ Mobile-specific touches include:
 
 ---
 
-## 8. Data Persistence
+## 7. Data Persistence
 
 Your saved cities, their order, and your selected language are all stored in your browser's local storage. That means:
 
@@ -170,7 +157,7 @@ Your saved cities, their order, and your selected language are all stored in you
 
 ---
 
-## 9. Security & Integrity
+## 8. Security & Integrity
 
 The dashboard is a single static HTML file with no backend server, but it still follows the same hardening practices you'd expect from a hosted app:
 
@@ -182,7 +169,7 @@ None of this changes how you use the dashboard day to day — it's protection th
 
 ---
 
-## 10. Troubleshooting
+## 9. Troubleshooting
 
 **"City not found" alert when adding a city**
 Make sure you've selected an entry from the dropdown list (rather than typing a name and pressing Enter immediately) — the dashboard needs the exact geocoded match to fetch weather data for that location.
@@ -195,7 +182,7 @@ This is a known Safari limitation with the native suggestion list for search inp
 
 ---
 
-## 11. Credits & License
+## 10. Credits & License
 
 **Created by:** GGR, Maryland, USA
 **About:** Global Time & Weather dashboard for the Vivaldi Browser Side Panel, built for the Vivaldi community.
