@@ -1,19 +1,20 @@
 # Time.N.Weather — Dashboard Wiki
 
-A global time and weather dashboard for tracking live local times, current conditions, hourly/daily forecasts, and deep astronomical data for any city on Earth. Built for the **Vivaldi Browser Side Panel** and the Vivaldi Community, and works as a standalone page in any modern desktop or mobile browser.
+A global time, sun, moon and weather dashboard for any city on Earth. Built for the **Vivaldi Browser Side Panel** and the Vivaldi Community, and works as a standalone page in any modern desktop or mobile browser.
 
 **Repository:** [github.com/ggr03/Time.N.Weather-Dashboard](https://github.com/ggr03/Time.N.Weather-Dashboard)
+**Current version:** 2.0 (2026-11-24)
 
 ---
 
 ## Table of Contents
 
-1. [Managing Your Cities](#1-managing-your-cities)
-2. [The Four Weather Views](#2-the-four-weather-views)
-3. [Reading Current Conditions](#3-reading-current-conditions)
-4. [Hourly & Daily Forecasts](#4-hourly--daily-forecasts)
-5. [Reading Astro & Lighting Stats](#5-reading-astro--lighting-stats)
-6. [Language Support](#6-language-support)
+1. [What's New in 2.0](#1-whats-new-in-20)
+2. [Managing Your Cities](#2-managing-your-cities)
+3. [The Sun Tab](#3-the-sun-tab)
+4. [The Moon Tab](#4-the-moon-tab)
+5. [The Weather Tab](#5-the-weather-tab)
+6. [Settings: Units & Clock](#6-settings-units--clock)
 7. [Mobile & Cross-Browser Support](#7-mobile--cross-browser-support)
 8. [Data Persistence](#8-data-persistence)
 9. [Security & Integrity](#9-security--integrity)
@@ -22,142 +23,150 @@ A global time and weather dashboard for tracking live local times, current condi
 
 ---
 
-## 1. Managing Your Cities
+## 1. What's New in 2.0
 
-The dashboard tracks multiple locations worldwide, each with its own local timezone and localized weather data. Everything is stored in your browser — there's no account and no server-side sync.
+Version 2.0 is a full redesign of the layout. The data sources (Open-Meteo and SunCalc) and the security model are unchanged.
+
+- **Three tabs — Sun, Moon, Weather** — replace the old Current / Hourly / Daily / Astro views.
+- **Hamburger (☰) city menu** replaces the sidebar of city tabs. Search, add, switch, reorder and remove cities from one slide-out panel.
+- **Interactive sun path** with a 24-hour time scrubber: drag to see where the sun and moon are at any moment of the day.
+- **Date navigation** on the Sun and Moon tabs: step to any day up to a year ahead or back.
+- **New Sun data:** compass, day-breakdown ring, sunset/sunrise colour potential, solar events (solstices & equinoxes), sun & moon elevation chart, 7-day golden hour, hourly cloud cover.
+- **New Moon view:** rendered moon showing the actual phase, moonrise/moonset with direction, lunar-cycle timeline, traditional full moon names, and upcoming phases.
+- **New Weather view:** hero card, scrollable next-hours strip, SVG gauges (UV, humidity, feels like, wind, pressure, AQI), and a 10-day forecast with temperature range bars.
+- **°C/°F and 24h/12h settings** instead of showing both units everywhere.
+- **Your saved cities carry over** from version 1.x automatically.
+
+---
+
+## 2. Managing Your Cities
+
+The dashboard tracks multiple locations worldwide, each with its own local timezone. Everything is stored in your browser — there's no account and no server-side sync.
+
+### Opening the City Menu
+
+Tap the **☰ hamburger icon** at the top-left, or tap the **city name** under the date on the Sun and Moon tabs. A panel slides in from the left. Close it with the **✕**, by tapping outside it, or by pressing `Esc`.
 
 ### Adding a New City
 
-The dashboard uses a live, high-precision geocoding API to find exact global locations.
+1. Type a city name in the search box at the top of the menu (at least 2 characters).
+2. Matches from the global geocoding database appear below, showing the city plus region and country, so you can tell apart places that share a name (e.g., *London, England* vs. *London, Ontario, Canada*).
+3. Tap a match — or press `Enter` to pick the first one. The city is added and becomes the active city.
 
-1. Locate the **Search Bar** at the top of the sidebar.
-2. Begin typing the name of a city (a minimum of 2 characters is required before results appear).
-3. **Wait a brief moment.** A dropdown will populate with matches from the global database, showing the city, region/state, and country to help you tell apart places that share a name (e.g., *London, England* vs. *London, Ontario, Canada*).
-4. Select the correct city from the dropdown list.
-5. Click **"Add City"** (or press `Enter`). The city appears as a new tab in your sidebar, and its panel shows just the plain city name — the region/country shown in the search dropdown is only there to help you pick the right match.
+> **Tip:** Adding a city that's already in your list simply switches to it instead of creating a duplicate.
 
-> **Tip:** If you add a city that's already in your list, the dashboard simply switches to its existing tab instead of creating a duplicate.
+### Switching Cities
+
+Each saved city shows its current weather icon, temperature and live local time. Tap a city to switch to it; the active city is highlighted.
 
 ### Rearranging Cities
 
-Reorder your saved cities with native drag-and-drop:
-
-1. **Hover** over any city tab you want to move — the cursor changes to a "grab" hand.
-2. **Click and hold** the tab; it becomes slightly transparent to show it's being dragged.
-3. **Drag** it up or down the list. A dashed blue border marks exactly where it will land as you pass over other tabs.
-4. **Release** to drop it into place. The new order is saved automatically.
-
-*(When you click a tab to view its weather, it "pops up" with a 3D shadow to mark it as the active view. Unselected tabs stay flat.)*
+Drag a city up or down the list and drop it into place. A highlighted border shows where it will land. The new order is saved automatically.
 
 ### Removing a City
 
-Each tab has a small **✕** close button in its corner. Tapping/clicking it removes that city from your list immediately (no confirmation prompt), and updates your saved list.
+Tap the **×** on the right of a city. It is removed immediately (no confirmation prompt).
 
 ---
 
-## 2. The Four Weather Views
+## 3. The Sun Tab
 
-Once a city is selected, four view toggles sit at the top of the main panel:
+All sun data is calculated for the selected city's exact latitude, longitude and local day.
 
-| View | What it shows |
-|---|---|
-| **Current Conditions** | Current conditions bento-grid — temperature, sun/moon times, solar position, AQI, humidity, wind, pressure, UV, and pollutants |
-| **Hourly** | Hour-by-hour conditions and temperature for the next 24 hours, starting from the current hour |
-| **Daily** | Daily high/low temperatures and conditions for the coming week |
-| **Astro** | Moon phase, illumination, distance, upcoming full/new moon dates, and photography-focused lighting data (blue hour, golden hour, twilights) |
+### Date & Time
 
-> **Naming note:** This view was previously labeled "Lunar Metrics." It's now called **Astro**, since the blue hour/golden hour/twilight data in this view is about the sun's position, not the moon — "Astro" better reflects everything the tab actually covers.
+- **‹ / ›** step to the previous or next day. The centre date button returns you to **today, live**.
+- The **sun-path arc** shows sunrise (left), sunset (right) and the sun's current position, with a label for the current light phase: *Day*, *Golden hour*, *Blue hour*, *Nautical/Astro twilight* or *Night*.
+- The **dotted 24-hour bar** under the arc is a time scrubber. Drag it to explore any time of the day; the arc, compass, day ring and elevation chart all follow. Tap **Now** to return to live time.
 
-> **Naming note:** The first view was previously labeled "Local Weather." It's now called **Current Conditions**, which more precisely describes what the tab shows (the current moment's readings, as opposed to the Hourly/Daily forecasts).
+### Cards
 
-Every temperature throughout the dashboard is shown in **both Celsius and Fahrenheit** side by side, so you never need to switch units.
+- **Compass:** Compass bearing of the sun (yellow) and moon (grey). Faded markers mean the body is below the horizon.
+- **Day breakdown:** A 24-hour ring (midnight at the bottom, noon at the top) showing night, astronomical, nautical and civil twilight, and daylight. The centre shows total daylight and the change versus yesterday.
+- **Morning / Evening light:** Toggle between morning and evening to see **Golden hour**, **Sunrise/Sunset** and **Blue hour** times, each with the forecast cloud cover at that hour.
+- **Sunset (or Sunrise) colour potential:** A 0–100 estimate of how colourful the sky may be. Mid- and high-level cloud gives colour something to light up; low cloud and rain block it; a perfectly clear sky is pleasant but plain. This is a heuristic based on Open-Meteo's cloud layers, not an official forecast.
+- **Solar details:** Solar noon (with the sun's maximum altitude), solar midnight (nadir), day length and night length.
+- **Solar events:** The next four solstices and equinoxes, with date, local time and days left. Seasonal icons flip for the Southern Hemisphere.
+- **Sun & Moon elevation:** Altitude of the sun and moon across the day, with the horizon line and a marker for the selected time.
+- **7-day golden hour:** Golden hour start time and length for the next seven days (morning or evening, following the toggle).
+- **Cloud cover:** Hourly cloud-cover bars for the day, with the clearest and cloudiest periods.
+- **Twilights:** Civil, nautical and astronomical twilight times (morning or evening).
 
----
+### Light Angle Definitions
 
-## 3. Reading Current Conditions
-
-The **Current Conditions** view presents a "bento-box" grid of current meteorological conditions:
-
-- **Condition & Temp:** Current weather icon (e.g., ⛅ Partly Cloudy), air temperature in °C/°F, and "Feels like" (apparent) temperature factoring in humidity and wind chill.
-- **Sunrise & Sunset:** Local times the sun crests the horizon (🌅) and disappears (🌇).
-- **Moonrise & Moonset:** Local times the moon appears (🌛) and sets (🌜) for that city.
-- **Solar Position:**
-  - *Noon / Nadir:* When the sun reaches its highest point (Solar Noon) and lowest point beneath the earth (Nadir).
-  - *Azimuth:* Compass direction of the sun, in degrees.
-  - *Altitude:* Height of the sun above the horizon, in degrees.
-- **Day & Night Length:** Total daylight (☀️) versus total darkness (🌙) for the current 24-hour cycle.
-- **Air Quality (AQI):** Current US Air Quality Index score. Color-codes from green to purple across Good, Moderate, Unhealthy for Sensitive Groups, Unhealthy, Very Unhealthy, and Hazardous.
-- **Pollutants:** Dust concentration (µg/m³), alongside NO₂ and other pollutant data feeding into the AQI score.
-- **Humidity & Dewpoint:** Water vapor percentage in the air, paired with the temperature at which dew forms — a good indicator of how "muggy" the air feels.
-- **Wind Speed:** Current sustained wind speed.
-- **Air Pressure:** Atmospheric surface pressure in hectopascals (hPa).
-- **Max UV Index:** Predicted peak ultraviolet radiation for the day.
-- **Visibility:** Current visibility, categorized as Clear, Reduced, or Poor.
+- **Golden Hour:** Sun between -4° below and +6° above the horizon — soft, warm light.
+- **Blue Hour:** Sun between -8° and -4° below the horizon — deep blue sky.
+- **Civil Twilight:** Sun -6° to 0°. **Nautical Twilight:** -12° to -6°. **Astronomical Twilight:** -18° to -12°.
 
 ---
 
-## 4. Hourly & Daily Forecasts
+## 4. The Moon Tab
 
-- **Hourly:** Lists conditions hour by hour starting from right now, with icon, short description, and temperature (°C/°F) for each hour. Scrolls independently of the rest of the page.
-- **Daily:** One row per day, showing the day/date, a summary icon and condition, and the day's high (↑) and low (↓) temperatures in °C and °F.
+The Moon tab uses the same date navigation as the Sun tab.
 
-Both lists pull from the same live forecast data as the Current Conditions view, so they always stay in sync with the selected city.
-
----
-
-## 5. Reading Astro & Lighting Stats
-
-Selecting **Astro** swaps in advanced astronomical data calculated from the exact latitude and longitude of your selected city.
-
-### The Lunar Bento Cards
-
-- **Moon Phase:** Icon plus astronomical name of the current phase (e.g., *Waxing Crescent*, *Waning Gibbous*).
-- **Illumination:** Percentage of the moon's surface currently lit and visible from Earth.
-- **Earth Distance:** Real-time geocentric distance between Earth and the Moon, in kilometers.
-- **Next Full Moon / Next New Moon:** Upcoming calendar dates for 100% illumination (Full) and 0% illumination (New).
-- **Moon Age:** Days elapsed since the last New Moon, tracking progress through the ~29.5-day synodic cycle.
-
-### The Lighting Grid (Photography & Civil Data)
-
-The Morning and Evening Lighting panels track specific solar angles beneath the horizon that dictate light quality for photography and civil twilight phases:
-
-- **Blue Hour:** Sun between -8° and -4° below the horizon — a deep blue sky, ideal for landscape and city photography.
-- **Golden Hour:** Sun between -4° below and +6° above the horizon — soft, warm light favored by photographers.
-- **Twilights:**
-  - *Astronomical Twilight:* Sun -18° to -12° below the horizon. Darkest phase; stars fully visible, horizon barely distinguishable.
-  - *Nautical Twilight:* Sun -12° to -6° below the horizon. Horizon visible; sailors can navigate by stars.
-  - *Civil Twilight:* Sun -6° to 0° below the horizon. Brightest twilight; enough natural light for outdoor activities without artificial lighting.
+- **Moon view:** A rendered moon lit to match the actual phase (mirrored for the Southern Hemisphere), with the phase name — *New Moon*, *First Quarter*, *Full Moon* and *Third Quarter* are shown on the day they occur, otherwise *Waxing/Waning Crescent/Gibbous*.
+- **Moonrise / Moonset:** Local times and compass bearing (e.g., *Moonrise @55°*). On some days the moon doesn't rise or set; this is shown as *No moonrise / No moonset*.
+- **Stats:** Illumination, moon age (days since the last New Moon), Earth–Moon distance, current altitude and azimuth, and the date of the next New Moon.
+- **Lunar cycle:** A timeline from the last New Moon through First Quarter, Full Moon and Third Quarter to the next New Moon, with a marker for where the cycle is now.
+- **Next Full Moon:** Days remaining, date and time, plus its traditional (Northern Hemisphere) name, e.g. *Full Cold Moon* in December.
+- **Upcoming phases:** The next eight principal phases with date, time and days remaining.
 
 ---
 
-## 6. Mobile & Cross-Browser Support
+## 5. The Weather Tab
 
-The dashboard is fully responsive and touch-friendly, tested across:
+- **Hero card:** City, date, live local time, current temperature, condition, feels-like temperature, and today's high and low.
+- **Next hours:** A scrollable strip of the next 24 hours with icon, temperature and chance of rain.
+- **Cloud cover:** Hourly cloud-cover bars for today, with the clearest and cloudiest periods.
+- **Gauges & cards:**
+  - **UV index:** Current UV with its category (Low → Extreme) and today's maximum.
+  - **Humidity:** Relative humidity, with the dew point.
+  - **Feels like:** Apparent temperature versus the actual temperature.
+  - **Wind:** Speed, gusts and direction on a compass dial.
+  - **Pressure:** Sea-level pressure (hPa or inHg).
+  - **Visibility:** Distance, categorized as Clear, Reduced or Poor.
+  - **Rain today:** Total precipitation and chance of rain.
+  - **Cloudiness:** Current cloud cover.
+  - **Air quality (US AQI):** Colour-coded from Good to Hazardous. Hover for a short explanation (source: AirNow.gov, U.S. EPA).
+  - **Pollutants:** PM2.5, NO₂, CO₂ and dust.
+- **Upcoming days:** A 10-day forecast with condition, chance of rain, and a bar showing each day's low–high range against the whole week.
+
+Weather data is refreshed automatically every 30 minutes while the page is open. If the servers can't be reached, a **Try again** button appears.
+
+---
+
+## 6. Settings: Units & Clock
+
+At the bottom of the city menu:
+
+- **Units:** `°C · km` (metric) or `°F · mi` (imperial). Applies to temperature, wind, visibility, rain, pressure and moon distance.
+- **Clock:** `24h` or `12h` time format.
+
+---
+
+## 7. Mobile & Cross-Browser Support
+
+The dashboard is a single column designed for narrow side panels and phones, and is touch-friendly. It works in current versions of:
 
 - **Desktop:** Chrome, Firefox, Vivaldi, Brave, Opera, Edge, Safari
 - **Mobile:** Safari (iOS), Chrome (Android/iOS), Samsung Browser, Firefox (Android), Brave, Opera
 
-Mobile-specific touches include:
-
-- Layout reflows to a single column on phones, with larger tap targets on tabs, buttons, and inputs
-- Safe-area padding so content isn't hidden behind the iPhone notch/home indicator or Android gesture bar
-- Prevents iOS Safari's auto-zoom-on-input-focus behavior
-- Can be added to your home screen on iOS or Android for an app-like launch icon
-- Smooth momentum scrolling for the city list and hourly forecast on touch devices
+Mobile-specific touches include safe-area padding for notches and gesture bars, no auto-zoom when typing in the search box, and home-screen support for an app-like launch icon.
 
 ---
 
-## 7. Data Persistence
+## 8. Data Persistence
 
-Your saved cities, their order, and your selected language are all stored in your browser's local storage. That means:
+Your saved cities, their order, the active city, the last tab you used, and your units/clock settings are stored in your browser's local storage. That means:
 
 - Your list survives closing and reopening the browser or side panel
 - Data is local to that specific browser on that specific device — it does not sync across browsers or devices
-- Clearing your browser's site data/cache for this page will reset your saved cities and language back to defaults
+- Clearing your browser's site data for this page resets everything back to defaults
+- Cities saved by version 1.x are imported automatically the first time 2.0 opens
 
 ---
 
-## 8. Security & Integrity
+## 9. Security & Integrity
 
 The dashboard is a single static HTML file with no backend server, but it still follows the same hardening practices you'd expect from a hosted app:
 
@@ -165,27 +174,34 @@ The dashboard is a single static HTML file with no backend server, but it still 
 - **Subresource Integrity (SRI):** The one external library the dashboard loads (SunCalc, for sun/moon calculations) is verified against a cryptographic hash before the browser will run it. If the file served from the CDN doesn't exactly match, it's blocked rather than silently executed.
 - **Locked-down network access:** The dashboard can only reach the three Open-Meteo endpoints it actually needs (geocoding, weather, and air quality) — no other network destination is reachable from the page's own code.
 
-None of this changes how you use the dashboard day to day — it's protection that runs invisibly in the background.
+> **Editing the file:** If you change the code inside the `<script>` block, recompute the hash as described in the comment above the CSP `<meta>` tag, or the page will load without running.
 
 ---
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 
-**"City not found" alert when adding a city**
-Make sure you've selected an entry from the dropdown list (rather than typing a name and pressing Enter immediately) — the dashboard needs the exact geocoded match to fetch weather data for that location.
+**The page is blank below the tabs**
+The browser blocked the script — usually because the file was edited without updating the CSP hash (see above). Check the browser console for a Content Security Policy message.
 
-**"Connection Failed" message on a city's panel**
-This appears when the dashboard can't reach the weather data servers. Check your internet connection, or try re-adding the city — this is usually temporary.
+**"Astronomy library unavailable" on the Sun or Moon tab**
+SunCalc couldn't be loaded from cdnjs. Check your internet connection and reload.
 
-**Dropdown suggestions not appearing on Safari (iOS)**
-This is a known Safari limitation with the native suggestion list for search inputs, not a bug in the dashboard. You can still type a city name and press **Enter** or tap **Add City** to add it directly.
+**"Connection failed" on the Weather tab**
+The dashboard couldn't reach the Open-Meteo servers. Check your connection and tap **Try again** — this is usually temporary.
+
+**Colour potential or cloud cover says "No forecast for this date"**
+Cloud data is only available from yesterday to about nine days ahead. Sun and moon times work for any date.
+
+**No search results appear**
+Type at least 2 characters and wait a moment. If nothing appears, check your connection — the search uses the live Open-Meteo geocoding service.
 
 ---
 
-## 10. Credits & License
+## 11. Credits & License
 
 **Created by:** GGR, Maryland, USA
 **About:** Global Time & Weather dashboard for the Vivaldi Browser Side Panel, built for the Vivaldi community.
 **Inspired by:** [JRK, Sexbierum, The Netherlands](https://github.com/JRKL75/Chrono)
+**Data:** Weather, air quality and geocoding by [Open-Meteo](https://open-meteo.com); sun and moon calculations by [SunCalc](https://github.com/mourner/suncalc).
 
 Copyright © 2026 GGR. You are free to use, modify, share, and redistribute this project for personal or commercial purposes. Please respect the original author by keeping this notice intact and providing appropriate credit when redistributing or publishing modified versions. This project is provided "as is," without warranty of any kind — the author accepts no liability for any damages or issues arising from its use.
