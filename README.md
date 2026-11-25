@@ -3,13 +3,22 @@
 A global time, sun, moon and weather dashboard for any city on Earth. Built for the **Vivaldi Browser Side Panel** and the Vivaldi Community, and works as a standalone page in any modern desktop or mobile browser.
 
 **Repository:** [github.com/ggr03/Time.N.Weather-Dashboard](https://github.com/ggr03/Time.N.Weather-Dashboard)
-**Current version:** 2.0 (2026-11-24)
+**Current version:** 2.1 (2026-11-25)
+
+<p align="center">
+  <img src="screenshots/sun-tab.png" alt="Sun tab" width="260">
+  &nbsp;
+  <img src="screenshots/moon-tab.png" alt="Moon tab" width="260">
+  &nbsp;
+  <img src="screenshots/weather-tab.png" alt="Weather tab" width="260">
+</p>
+<p align="center"><sub>Sun tab (Cluj-Napoca, Romania) · Moon tab (Perth, Australia) · Weather tab (Salvador, Brazil)</sub></p>
 
 ---
 
 ## Table of Contents
 
-1. [What's New in 2.0](#1-whats-new-in-20)
+1. [What's New in 2.x](#1-whats-new-in-2x)
 2. [Managing Your Cities](#2-managing-your-cities)
 3. [The Sun Tab](#3-the-sun-tab)
 4. [The Moon Tab](#4-the-moon-tab)
@@ -23,7 +32,13 @@ A global time, sun, moon and weather dashboard for any city on Earth. Built for 
 
 ---
 
-## 1. What's New in 2.0
+## 1. What's New in 2.x
+
+### 2.1
+
+- **Day & night world map** on the Sun tab: a live map showing where it is day, twilight and night across the globe, where the sun and moon are directly overhead, and all your saved cities. It follows the time scrubber, so you can watch the night side move across the world.
+
+### 2.0
 
 Version 2.0 is a full redesign of the layout. The data sources (Open-Meteo and SunCalc) and the security model are unchanged.
 
@@ -67,6 +82,8 @@ Drag a city up or down the list and drop it into place. A highlighted border sho
 
 Tap the **×** on the right of a city. It is removed immediately (no confirmation prompt).
 
+<p align="center"><img src="screenshots/city-menu.png" alt="City menu" width="300"></p>
+
 ---
 
 ## 3. The Sun Tab
@@ -81,6 +98,7 @@ All sun data is calculated for the selected city's exact latitude, longitude and
 
 ### Cards
 
+- **Day & night map:** A world map with the night side shaded, fading through civil, nautical and astronomical twilight into full night. The yellow dot marks where the sun is directly overhead (the subsolar point) and the white dot where the moon is overhead; the coordinates of both are shown below the map. The active city is marked in red and labelled, and your other saved cities appear as small white dots. The map follows the date navigation and the time scrubber.
 - **Compass:** Compass bearing of the sun (yellow) and moon (grey). Faded markers mean the body is below the horizon.
 - **Day breakdown:** A 24-hour ring (midnight at the bottom, noon at the top) showing night, astronomical, nautical and civil twilight, and daylight. The centre shows total daylight and the change versus yesterday.
 - **Morning / Evening light:** Toggle between morning and evening to see **Golden hour**, **Sunrise/Sunset** and **Blue hour** times, each with the forecast cloud cover at that hour.
@@ -91,6 +109,8 @@ All sun data is calculated for the selected city's exact latitude, longitude and
 - **7-day golden hour:** Golden hour start time and length for the next seven days (morning or evening, following the toggle).
 - **Cloud cover:** Hourly cloud-cover bars for the day, with the clearest and cloudiest periods.
 - **Twilights:** Civil, nautical and astronomical twilight times (morning or evening).
+
+<p align="center"><img src="screenshots/day-night-map.png" alt="Day and night map" width="400"></p>
 
 ### Light Angle Definitions
 
@@ -202,6 +222,6 @@ Type at least 2 characters and wait a moment. If nothing appears, check your con
 **Created by:** GGR, Maryland, USA
 **About:** Global Time & Weather dashboard for the Vivaldi Browser Side Panel, built for the Vivaldi community.
 **Inspired by:** [JRK, Sexbierum, The Netherlands](https://github.com/JRKL75/Chrono)
-**Data:** Weather, air quality and geocoding by [Open-Meteo](https://open-meteo.com); sun and moon calculations by [SunCalc](https://github.com/mourner/suncalc).
+**Data:** Weather, air quality and geocoding by [Open-Meteo](https://open-meteo.com); sun and moon calculations by [SunCalc](https://github.com/mourner/suncalc); world map outlines from [Natural Earth](https://www.naturalearthdata.com) (public domain), embedded in the file so the map works without extra downloads.
 
 Copyright © 2026 GGR. You are free to use, modify, share, and redistribute this project for personal or commercial purposes. Please respect the original author by keeping this notice intact and providing appropriate credit when redistributing or publishing modified versions. This project is provided "as is," without warranty of any kind — the author accepts no liability for any damages or issues arising from its use.
